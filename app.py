@@ -7,7 +7,10 @@ from datetime import datetime, date
 import os
 import time
 
-API_URL = "http://127.0.0.1:8000"
+import os
+# Tenta pegar o link da nuvem. Se não achar, usa o local.
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+print(f"🔗 Conectando no Backend: {API_URL}") # Isso vai ajudar a gente a ver o erro
 st.set_page_config(page_title="Decant ERP", page_icon="💧", layout="wide")
 
 if 'carrinho' not in st.session_state: st.session_state['carrinho'] = []
