@@ -230,11 +230,21 @@ def resetar_dados(db: Session = Depends(get_db)):
     return {"msg": "Dados apagados"}
 @app.post("/auth/login/")
 def login(u: UsuarioBase, db: Session = Depends(get_db)):
-    user = db.query(Usuario).filter(Usuario.username == u.username).first()
-    if not user or not verificar_senha(u.senha, user.senha_hash):
-        if u.username == "admin" and u.senha == "123": return {"msg": "OK", "cargo": "Diretor", "usuario": "admin"}
-        raise HTTPException(401, "Credenciais inválidas")
-    return {"msg": "OK", "cargo": user.cargo, "usuario": user.username}
+    # --- PORTA DE EMERGÊNCIA (Bypass para garantir o acesso) ---
+    if u.username == "admin" and u.senha == "123":
+        return {"msg": "OK", "cargo": "Diretor", "usuario": "admin"}
+    # -----------------------------------------------------------
+
+    # Tenta validar pelo banco (só roda se não for o admin/123)
+    try:
+        user = db.query(Usuario).filter(Usuario.username == u.username).first()
+        if not user or not verificar_senha(u.senha, user.senha_hash):
+            raise HTTPException(401, "Credenciais inválidas")
+        return {"msg": "OK", "cargo": user.cargo, "usuario": user.username}
+    except Exception as e:
+        # Se der erro no banco ou na criptografia, imprime no log mas não trava o admin
+        print(f"Erro interno no login: {e}")
+        raise HTTPException(500, f"Erro interno: {str(e)}")
 @app.get("/sistema/backup/")
 def baixar_backup():
     file_path = "sistema_final.db"
