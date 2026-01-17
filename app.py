@@ -82,22 +82,43 @@ def tela_login():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
         st.markdown("<br><br>", unsafe_allow_html=True)
+        # Tenta carregar logo
         logo_path = "frontend/logo.png"
         if not os.path.exists(logo_path): logo_path = "logo.png"
         if os.path.exists(logo_path): st.image(logo_path, use_container_width=True)
         else: st.markdown(f"<div style='display:flex; flex-direction:column; align-items:center;'>{render_logo_svg(width='80px', color='#3B82F6')}<div class='login-title'>Decant ERP</div></div>", unsafe_allow_html=True)
+        
         with st.form("login_form"):
+            st.write("--- MODO DE DIAGNÓSTICO ---")
             u_input = st.text_input("Usuário", placeholder="admin")
             p_input = st.text_input("Senha", type="password", placeholder="••••••")
             submit = st.form_submit_button("ENTRAR")
+            
             if submit:
+                # 1. Mostra onde estamos tentando conectar
+                st.info(f"📡 Tentando conectar no Cérebro: {API_URL}")
+                
                 try:
+                    # 2. Faz a chamada
                     res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""})
+                    
+                    # 3. MOSTRA A RESPOSTA CRUA (Aqui vamos descobrir o erro)
+                    st.warning(f"Status Code: {res.status_code}") 
+                    st.code(f"Resposta do Servidor: {res.text}")
+
                     if res.status_code == 200:
                         data = res.json()
-                        st.session_state['logado'] = True; st.session_state['usuario'] = data['usuario']; st.session_state['cargo'] = data['cargo']; st.rerun()
-                    else: st.error("Credenciais inválidas ou Erro de Conexão com o Servidor.")
-                except Exception as e: st.error(f"Erro técnico: {e}")
+                        st.session_state['logado'] = True
+                        st.session_state['usuario'] = data['usuario']
+                        st.session_state['cargo'] = data['cargo']
+                        st.success("Login OK! Redirecionando...")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("O servidor recusou o login. Veja o código acima.")
+                        
+                except Exception as e:
+                    st.error(f"Erro TÉCNICO de conexão: {e}")
 
 def sistema_erp():
     with st.sidebar:
