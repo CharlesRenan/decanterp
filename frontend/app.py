@@ -141,13 +141,22 @@ def sistema_erp():
 
     elif page_id == "dash":
         header("Visão Geral")
+        # 1. Busca os Dados
         d = get_data("financeiro/dashboard")
+        vendas = get_data("vendas")
+        clientes = get_data("clientes")
+        prods = get_data("produtos") # Novo: Buscamos produtos para ter os nomes
+
+        # 2. Cards do Topo
         c1, c2, c3, c4 = st.columns(4)
         with c1: card_html("RECEITA TOTAL", f"R$ {d.get('receita', 0):,.2f}", "Vendas + Extras", "card-blue")
         with c2: card_html("DESPESAS TOTAIS", f"R$ {d.get('despesas', 0):,.2f}", "MP + Contas Fixas", "card-red")
         with c3: card_html("LUCRO LÍQUIDO", f"R$ {d.get('lucro', 0):,.2f}", f"Margem Real: {d.get('margem', 0):.1f}%", "card-green")
         with c4: card_html("SISTEMA", "Online", "v2.0 CRM", "card-dark")
+        
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 3. Andar do Meio: Fluxo e Vendas Recentes
         c_graf, c_vendas = st.columns([1.6, 1])
         with c_graf:
             dados = d.get('grafico', [])
@@ -156,12 +165,38 @@ def sistema_erp():
             fig.update_layout(title={'text': "Fluxo de Caixa Mensal", 'y': 0.93, 'x': 0.05, 'xanchor': 'left', 'yanchor': 'top', 'font': {'size': 16, 'color': 'white', 'family': 'Inter', 'weight': 'bold'}}, paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='#94A3B8', xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#334155'), legend=dict(orientation="h", y=1.05), margin=dict(l=20, r=20, t=60, b=20), height=370)
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         with c_vendas:
-            vendas = get_data("vendas"); clientes = get_data("clientes"); map_clientes = {c['id']: c for c in clientes}
+            map_clientes = {c['id']: c for c in clientes}
             rows_html = ""
             for v in vendas[:5]:
                 cli = map_clientes.get(v['cliente_id'], {'nome': 'Cliente', 'email': '-'})
                 rows_html += get_sales_row_html(cli['nome'], cli['email'], v['valor_total'])
             st.markdown(f"<div class='sales-box'><div class='sales-header'>Últimas Vendas</div>{rows_html}</div>", unsafe_allow_html=True)
+
+        # 4. Andar de Baixo: Produtos e Pagamentos (NOVO!)
+        if vendas and prods:
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Prepara dados
+            df_vendas = pd.DataFrame(vendas)
+            map_prods = {p['id']: p['nome'] for p in prods}
+            df_vendas['Produto'] = df_vendas['produto_id'].map(map_prods)
+            
+            # Colunas
+            g1, g2 = st.columns([1.5, 1])
+            
+            with g1:
+                st.markdown("##### 🏆 Produtos Mais Vendidos")
+                top_prods = df_vendas.groupby('Produto')['valor_total'].sum().reset_index().sort_values('valor_total', ascending=False).head(5)
+                fig_bar = px.bar(top_prods, x='valor_total', y='Produto', orientation='h', text_auto='.2s', color='valor_total', color_continuous_scale='Blues')
+                fig_bar.update_layout(paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='white', xaxis_title="", yaxis_title="")
+                st.plotly_chart(fig_bar, use_container_width=True)
+                
+            with g2:
+                st.markdown("##### 💳 Meios de Pagamento")
+                pg = df_vendas.groupby('metodo_pagamento')['valor_total'].sum().reset_index()
+                fig_pie = px.pie(pg, values='valor_total', names='metodo_pagamento', hole=0.4, color_discrete_sequence=px.colors.sequential.RdBu)
+                fig_pie.update_layout(paper_bgcolor='#1E293B', font_color='white')
+                st.plotly_chart(fig_pie, use_container_width=True)
 
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)")
@@ -403,7 +438,6 @@ def sistema_erp():
                     pdf_bytes = requests.get(f"{API_URL}/vendas/{ven['id']}/pdf/").content
                     r3.download_button("📄 Baixar", pdf_bytes, key=f"btn_venda_{ven['id']}", file_name=f"recibo_{ven['id']}.pdf")
                     
-    # --- AQUI ESTÁ A CORREÇÃO: ABAS QUE FALTAVAM ---
     elif page_id == "fab":
         header("Chão de Fábrica"); forms = get_data("formulas")
         if forms:
@@ -427,7 +461,6 @@ def sistema_erp():
              d = get_data("relatorios/estoque/")
              if d: st.dataframe(pd.DataFrame(d['itens']), use_container_width=True)
         with t2: st.dataframe(pd.DataFrame(get_data("relatorios/lotes_vencimento/")), use_container_width=True)
-    # -----------------------------------------------
 
     elif page_id == "cfg":
         header("Configurações")
