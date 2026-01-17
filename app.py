@@ -7,15 +7,11 @@ from datetime import datetime, date
 import os
 import time
 
-# --- CONFIGURAÇÃO BLINDADA (COM RASTREAMENTO) ---
-# Tenta pegar o link da nuvem. Se não achar, usa o local.
-API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+# --- CONFIGURAÇÃO MANUAL (FORÇA BRUTA) ---
+# Cole aqui o link do seu Backend que você copiou do Render
+API_URL = "https://api-decant-oficial.onrender.com" 
 
-# Imprime no log do servidor para sabermos o que está acontecendo
-print(f"\n🚀 --- INICIANDO SISTEMA ---")
-print(f"🔗 ENDEREÇO DA API CARREGADO: {API_URL}")
-print(f"🌍 --------------------------\n")
-
+# (O resto do código continua igual...)
 st.set_page_config(page_title="Decant ERP", page_icon="💧", layout="wide")
 
 if 'carrinho' not in st.session_state: st.session_state['carrinho'] = []
