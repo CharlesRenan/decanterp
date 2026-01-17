@@ -29,18 +29,32 @@ def apply_custom_style():
         html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
         .stApp { background-color: #0F172A; }
         .big-font { font-family: 'Inter', sans-serif !important; font-size: 36px !important; font-weight: 600 !important; color: #FFFFFF !important; margin-top: 40px !important; margin-bottom: 20px !important; line-height: 1.2 !important; }
-        .card-container { border-radius: 12px; padding: 24px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.05); }
-        .card-blue { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border-top: 4px solid #3B82F6; color: white; }
-        .card-red { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border-top: 4px solid #EF4444; color: white; }
-        .card-green { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border-top: 4px solid #10B981; color: white; }
-        .card-dark { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border-top: 4px solid #F59E0B; color: white; }
+        /* Estilo dos Cards do Topo (Receita, Lucro...) */
+        .card-container { border-radius: 12px; padding: 24px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .card-blue { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #3B82F6; color: white; }
+        .card-red { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #EF4444; color: white; }
+        .card-green { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #10B981; color: white; }
+        .card-dark { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #F59E0B; color: white; }
         .card-title { font-size: 13px !important; font-weight: 600 !important; color: #94A3B8 !important; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .card-value { font-size: 32px; font-weight: 700 !important; color: #FFFFFF; margin-top: 0px; }
+        
+        /* Estilo do Menu Lateral */
         div[data-testid="stSidebar"] { background-color: #0F172A; border-right: 1px solid #1E293B; }
         div[data-testid="stSidebar"] button { border-color: #334155; color: #94A3B8; }
+        
+        /* Estilo de Formulários e Botões */
         div[data-testid="stForm"] input { background-color: #1E293B !important; border: 1px solid #334155 !important; color: white; }
         div[data-testid="stFormSubmitButton"] button { background: linear-gradient(90deg, #3B82F6 0%, #2563EB 100%) !important; color: white !important; border: none; }
-        .sales-box { background-color: #1E293B; border-radius: 12px; padding: 20px; height: 380px; overflow-y: auto; border: 1px solid #334155; }
+        div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border: none !important; background-color: transparent !important; color: #EF4444 !important; padding: 0px !important; }
+        div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { color: #FF0000 !important; background-color: rgba(239, 68, 68, 0.1) !important; }
+
+        /* --- UNIFORMIZAÇÃO DAS CAIXAS --- */
+        /* Caixa de Vendas (que você gostou) */
+        .sales-box { background-color: #1E293B; border-radius: 12px; padding: 20px; height: 400px; overflow-y: auto; border: 1px solid #334155; }
+        /* NOVA Caixa para os Gráficos (para ficar IGUAL à de vendas) */
+        .chart-box { background-color: #1E293B; border-radius: 12px; padding: 20px; height: 400px; border: 1px solid #334155; }
+        
+        /* Estilo interno da lista de vendas */
         .sales-header { font-size: 16px; font-weight: 700; color: white; margin-bottom: 20px; font-family: 'Inter'; }
         .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155; }
         .sales-row:last-child { border-bottom: none; }
@@ -51,8 +65,6 @@ def apply_custom_style():
         .sales-val { font-size: 14px; color: white; font-weight: 700; }
         .sales-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-top: 4px; display: inline-block; font-weight: 600; }
         .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34D399; }
-        div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border: none !important; background-color: transparent !important; color: #EF4444 !important; padding: 0px !important; }
-        div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { color: #FF0000 !important; background-color: rgba(239, 68, 68, 0.1) !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -141,13 +153,12 @@ def sistema_erp():
 
     elif page_id == "dash":
         header("Visão Geral")
-        # 1. Busca os Dados
         d = get_data("financeiro/dashboard")
         vendas = get_data("vendas")
         clientes = get_data("clientes")
-        prods = get_data("produtos") # Novo: Buscamos produtos para ter os nomes
+        prods = get_data("produtos")
 
-        # 2. Cards do Topo
+        # 1. Cards do Topo (Já são arredondados)
         c1, c2, c3, c4 = st.columns(4)
         with c1: card_html("RECEITA TOTAL", f"R$ {d.get('receita', 0):,.2f}", "Vendas + Extras", "card-blue")
         with c2: card_html("DESPESAS TOTAIS", f"R$ {d.get('despesas', 0):,.2f}", "MP + Contas Fixas", "card-red")
@@ -156,14 +167,16 @@ def sistema_erp():
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # 3. Andar do Meio: Fluxo e Vendas Recentes
+        # 2. Andar do Meio: Fluxo (com moldura) e Vendas (com moldura)
         c_graf, c_vendas = st.columns([1.6, 1])
         with c_graf:
+            st.markdown('<div class="chart-box">', unsafe_allow_html=True) # AQUI A MÁGICA
             dados = d.get('grafico', [])
             if dados: fig = px.bar(pd.DataFrame(dados), x="Mês", y="Valor", color="Tipo", barmode='group', color_discrete_map={'Entradas': '#10B981', 'Saídas': '#3B82F6'})
             else: fig = px.bar(pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor")
-            fig.update_layout(title={'text': "Fluxo de Caixa Mensal", 'y': 0.93, 'x': 0.05, 'xanchor': 'left', 'yanchor': 'top', 'font': {'size': 16, 'color': 'white', 'family': 'Inter', 'weight': 'bold'}}, paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='#94A3B8', xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#334155'), legend=dict(orientation="h", y=1.05), margin=dict(l=20, r=20, t=60, b=20), height=370)
+            fig.update_layout(title={'text': "Fluxo de Caixa Mensal", 'y': 0.95, 'x': 0.05, 'xanchor': 'left', 'yanchor': 'top', 'font': {'size': 16, 'color': 'white', 'family': 'Inter', 'weight': 'bold'}}, paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='#94A3B8', xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#334155'), legend=dict(orientation="h", y=1.1), margin=dict(l=20, r=20, t=80, b=20), height=350)
             st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            st.markdown('</div>', unsafe_allow_html=True)
         with c_vendas:
             map_clientes = {c['id']: c for c in clientes}
             rows_html = ""
@@ -172,31 +185,29 @@ def sistema_erp():
                 rows_html += get_sales_row_html(cli['nome'], cli['email'], v['valor_total'])
             st.markdown(f"<div class='sales-box'><div class='sales-header'>Últimas Vendas</div>{rows_html}</div>", unsafe_allow_html=True)
 
-        # 4. Andar de Baixo: Produtos e Pagamentos (NOVO!)
+        # 3. Andar de Baixo: Produtos (com moldura) e Pagamentos (com moldura)
         if vendas and prods:
             st.markdown("<br>", unsafe_allow_html=True)
-            
-            # Prepara dados
             df_vendas = pd.DataFrame(vendas)
             map_prods = {p['id']: p['nome'] for p in prods}
             df_vendas['Produto'] = df_vendas['produto_id'].map(map_prods)
-            
-            # Colunas
             g1, g2 = st.columns([1.5, 1])
-            
             with g1:
+                st.markdown('<div class="chart-box">', unsafe_allow_html=True) # MOLDURA AQUI
                 st.markdown("##### 🏆 Produtos Mais Vendidos")
                 top_prods = df_vendas.groupby('Produto')['valor_total'].sum().reset_index().sort_values('valor_total', ascending=False).head(5)
                 fig_bar = px.bar(top_prods, x='valor_total', y='Produto', orientation='h', text_auto='.2s', color='valor_total', color_continuous_scale='Blues')
-                fig_bar.update_layout(paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='white', xaxis_title="", yaxis_title="")
-                st.plotly_chart(fig_bar, use_container_width=True)
-                
+                fig_bar.update_layout(paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='white', xaxis_title="", yaxis_title="", margin=dict(t=30, b=20), height=300)
+                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+                st.markdown('</div>', unsafe_allow_html=True)
             with g2:
+                st.markdown('<div class="chart-box">', unsafe_allow_html=True) # MOLDURA AQUI
                 st.markdown("##### 💳 Meios de Pagamento")
                 pg = df_vendas.groupby('metodo_pagamento')['valor_total'].sum().reset_index()
                 fig_pie = px.pie(pg, values='valor_total', names='metodo_pagamento', hole=0.4, color_discrete_sequence=px.colors.sequential.RdBu)
-                fig_pie.update_layout(paper_bgcolor='#1E293B', font_color='white')
-                st.plotly_chart(fig_pie, use_container_width=True)
+                fig_pie.update_layout(paper_bgcolor='#1E293B', font_color='white', margin=dict(t=30, b=20), height=300)
+                st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
+                st.markdown('</div>', unsafe_allow_html=True)
 
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)")
@@ -437,7 +448,7 @@ def sistema_erp():
                     r1.write(f"#{ven['id']}"); r2.write(f"R$ {ven['valor_total']:.2f}")
                     pdf_bytes = requests.get(f"{API_URL}/vendas/{ven['id']}/pdf/").content
                     r3.download_button("📄 Baixar", pdf_bytes, key=f"btn_venda_{ven['id']}", file_name=f"recibo_{ven['id']}.pdf")
-                    
+    
     elif page_id == "fab":
         header("Chão de Fábrica"); forms = get_data("formulas")
         if forms:
@@ -454,6 +465,7 @@ def sistema_erp():
             st.divider(); st.markdown("**Histórico de Produção**")
             ops = get_data("producao/historico/")
             if ops: st.dataframe(pd.DataFrame(ops), use_container_width=True)
+        else: st.warning("Necessário cadastrar fórmulas na Engenharia.")
 
     elif page_id == "rel":
         header("Relatórios"); t1, t2 = st.tabs(["Estoque", "Lotes"])
