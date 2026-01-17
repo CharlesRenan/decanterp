@@ -7,10 +7,8 @@ from datetime import datetime, date
 import os
 import time
 
-# --- CONFIGURAÇÃO MANUAL ---
+# --- CONFIGURAÇÃO ---
 API_URL = "https://api-decant-oficial.onrender.com"
-
-print(f"🔗 CONECTANDO O ERP EM: {API_URL}")
 
 st.set_page_config(page_title="Decant ERP", page_icon="💧", layout="wide")
 
@@ -30,7 +28,7 @@ def apply_custom_style():
         .stApp { background-color: #0F172A; }
         .big-font { font-family: 'Inter', sans-serif !important; font-size: 36px !important; font-weight: 600 !important; color: #FFFFFF !important; margin-top: 40px !important; margin-bottom: 20px !important; line-height: 1.2 !important; }
         
-        /* CARDS DO TOPO (Receita, Lucro...) */
+        /* Cards do Topo */
         .card-container { border-radius: 12px; padding: 24px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .card-blue { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #3B82F6; color: white; }
         .card-red { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #EF4444; color: white; }
@@ -39,28 +37,21 @@ def apply_custom_style():
         .card-title { font-size: 13px !important; font-weight: 600 !important; color: #94A3B8 !important; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .card-value { font-size: 32px; font-weight: 700 !important; color: #FFFFFF; margin-top: 0px; }
         
-        /* MENU LATERAL */
+        /* Sidebar e Inputs */
         div[data-testid="stSidebar"] { background-color: #0F172A; border-right: 1px solid #1E293B; }
-        div[data-testid="stSidebar"] button { border-color: #334155; color: #94A3B8; }
         div[data-testid="stForm"] input { background-color: #1E293B !important; border: 1px solid #334155 !important; color: white; }
         div[data-testid="stFormSubmitButton"] button { background: linear-gradient(90deg, #3B82F6 0%, #2563EB 100%) !important; color: white !important; border: none; }
         
-        /* --- ESTILO UNIFICADO DAS CAIXAS (Vendas e Gráficos) --- */
-        .box-padrao { 
-            background-color: #1E293B; 
-            border-radius: 12px; 
-            padding: 20px; 
-            height: 420px; /* Altura fixa para alinhar tudo */
-            border: 1px solid #334155; 
-            overflow: hidden; /* Garante que nada saia da borda */
-            display: flex;
-            flex-direction: column;
+        /* --- ESTILO PARA AS CAIXAS DOS GRÁFICOS (Containers Nativos) --- */
+        /* Isso pinta o fundo e a borda dos st.container(border=True) */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
         }
         
-        .box-header { font-size: 16px; font-weight: 700; color: white; margin-bottom: 15px; font-family: 'Inter'; }
-        
-        /* Ajustes específicos para a lista de vendas */
-        .sales-scroll { overflow-y: auto; flex-grow: 1; }
+        /* Estilos da Lista de Vendas */
         .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155; }
         .sales-row:last-child { border-bottom: none; }
         .sales-left { display: flex; align-items: center; gap: 12px; }
@@ -92,6 +83,7 @@ def get_sales_row_html(nome, email, valor):
 
 def header(titulo): st.markdown(f"<div class='big-font'>{titulo}</div>", unsafe_allow_html=True)
 
+# --- LOGIN COM AUTO-RETRY ---
 def tela_login():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
@@ -104,13 +96,31 @@ def tela_login():
             u_input = st.text_input("Usuário", placeholder="admin")
             p_input = st.text_input("Senha", type="password", placeholder="••••••")
             submit = st.form_submit_button("ENTRAR")
+            
             if submit:
-                try:
-                    res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""})
-                    if res.status_code == 200:
-                        data = res.json(); st.session_state['logado'] = True; st.session_state['usuario'] = data['usuario']; st.session_state['cargo'] = data['cargo']; st.rerun()
-                    else: st.error("Acesso Negado")
-                except: st.error("Erro Conexão")
+                with st.spinner("Conectando ao sistema..."):
+                    try:
+                        # Tenta conectar
+                        res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""})
+                    except:
+                        # Se falhar (servidor dormindo), espera 2s e tenta de novo automaticamente
+                        time.sleep(2)
+                        try:
+                            res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""})
+                        except Exception as e:
+                            st.error(f"Erro fatal de conexão: {e}")
+                            res = None
+
+                    if res and res.status_code == 200:
+                        data = res.json()
+                        st.session_state['logado'] = True
+                        st.session_state['usuario'] = data['usuario']
+                        st.session_state['cargo'] = data['cargo']
+                        st.success("Login OK! Acessando...")
+                        time.sleep(0.5)
+                        st.rerun() # Força a atualização imediata
+                    else:
+                        st.error("Acesso Negado ou Servidor Offline.")
 
 def sistema_erp():
     with st.sidebar:
@@ -118,7 +128,7 @@ def sistema_erp():
         if os.path.exists(logo_path): st.markdown("<div style='margin-bottom: 25px; text-align: center;'>", unsafe_allow_html=True); st.image(logo_path, width=160); st.markdown("</div>", unsafe_allow_html=True)
         else: st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:30px; padding-left:10px;'>{render_logo_svg(width='32px', color='#3B82F6')}<div style='font-family:Inter; font-weight:700; font-size:20px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
         
-        menu = [{"l": "Visão Geral", "i": "grid", "id": "dash"}, {"l": "PDV (Caixa)", "i": "basket", "id": "pdv"}, {"l": "Financeiro", "i": "cash-coin", "id": "fin"}, {"l": "CRM", "i": "heart", "id": "crm"}, {"l": "Produtos", "i": "box-seam", "id": "prod"}, {"l": "Clientes", "i": "people", "id": "cli"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Preços", "i": "tags", "id": "prec"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Compras", "i": "cart", "id": "comp"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Vendas (Adm)", "i": "graph-up-arrow", "id": "vend"}, {"l": "Relatórios", "i": "bar-chart-line", "id": "rel"}, {"l": "Configurações", "i": "gear", "id": "cfg"}]
+        menu = [{"l": "Visão Geral", "i": "grid", "id": "dash"}, {"l": "PDV (Caixa)", "i": "basket", "id": "pdv"}, {"l": "Financeiro", "i": "cash-coin", "id": "fin"}, {"l": "CRM / Fidelidade", "i": "heart", "id": "crm"}, {"l": "Produtos", "i": "box-seam", "id": "prod"}, {"l": "Clientes", "i": "people", "id": "cli"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Preços", "i": "tags", "id": "prec"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Compras", "i": "cart", "id": "comp"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Vendas (Adm)", "i": "graph-up-arrow", "id": "vend"}, {"l": "Relatórios", "i": "bar-chart-line", "id": "rel"}, {"l": "Configurações", "i": "gear", "id": "cfg"}]
         sel = option_menu(None, [x["l"] for x in menu], icons=[x["i"] for x in menu], default_index=0, styles={"container": {"padding": "0!important", "background-color": "transparent"},"icon": {"color": "#94A3B8", "font-size": "14px"}, "nav-link": {"font-family":"Inter", "font-weight":"500", "font-size": "14px", "text-align": "left", "margin":"5px", "--hover-color": "#1E293B", "color": "#E2E8F0"},"nav-link-selected": {"background-color": "#3B82F6", "color": "#FFFFFF", "font-weight": "600"}})
         page_id = next(x["id"] for x in menu if x["l"] == sel)
         st.markdown("<div style='margin-top: 40px'></div>", unsafe_allow_html=True)
@@ -128,7 +138,6 @@ def sistema_erp():
         header("Visão Geral")
         d = get_data("financeiro/dashboard"); vendas = get_data("vendas"); clientes = get_data("clientes"); prods = get_data("produtos")
 
-        # 1. Cards Topo (Mantidos)
         c1, c2, c3, c4 = st.columns(4)
         with c1: card_html("RECEITA TOTAL", f"R$ {d.get('receita', 0):,.2f}", "Vendas + Extras", "card-blue")
         with c2: card_html("DESPESAS TOTAIS", f"R$ {d.get('despesas', 0):,.2f}", "MP + Contas Fixas", "card-red")
@@ -137,30 +146,28 @@ def sistema_erp():
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # 2. Primeira Linha: Fluxo e Lista de Vendas
         c_graf, c_vendas = st.columns([1.6, 1])
         
-        # Bloco Fluxo de Caixa (Corrigido)
+        # MUDANÇA AQUI: Usando Container Nativo (Isso resolve a caixa vazia)
         with c_graf:
-            dados = d.get('grafico', [])
-            if dados: fig = px.bar(pd.DataFrame(dados), x="Mês", y="Valor", color="Tipo", barmode='group', color_discrete_map={'Entradas': '#10B981', 'Saídas': '#3B82F6'})
-            else: fig = px.bar(pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor")
-            # Fundo Transparente para a cor da caixa aparecer
-            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#94A3B8', xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#334155'), legend=dict(orientation="h", y=1.1), margin=dict(l=20, r=20, t=20, b=20), height=340)
-            # Injeta o gráfico dentro da caixa HTML
-            graph_html = fig.to_html(include_plotlyjs='cdn', full_html=False, config={'displayModeBar': False})
-            st.markdown(f"""<div class='box-padrao'><div class='box-header'>Fluxo de Caixa Mensal</div>{graph_html}</div>""", unsafe_allow_html=True)
+            with st.container(border=True): # Borda automática do Streamlit
+                st.markdown("##### Fluxo de Caixa Mensal")
+                dados = d.get('grafico', [])
+                if dados: fig = px.bar(pd.DataFrame(dados), x="Mês", y="Valor", color="Tipo", barmode='group', color_discrete_map={'Entradas': '#10B981', 'Saídas': '#3B82F6'})
+                else: fig = px.bar(pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor")
+                fig.update_layout(paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='#94A3B8', xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#334155'), legend=dict(orientation="h", y=1.1), margin=dict(l=0, r=0, t=0, b=0), height=300)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-        # Bloco Lista de Vendas
         with c_vendas:
-            rows_html = ""
-            map_clientes = {c['id']: c for c in clientes}
-            for v in vendas[:5]:
-                cli = map_clientes.get(v['cliente_id'], {'nome': 'Cliente', 'email': '-'})
-                rows_html += get_sales_row_html(cli['nome'], cli['email'], v['valor_total'])
-            st.markdown(f"<div class='box-padrao'><div class='box-header'>Últimas Vendas</div><div class='sales-scroll'>{rows_html}</div></div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown("##### Últimas Vendas")
+                map_clientes = {c['id']: c for c in clientes}
+                rows_html = ""
+                for v in vendas[:5]:
+                    cli = map_clientes.get(v['cliente_id'], {'nome': 'Cliente', 'email': '-'})
+                    rows_html += get_sales_row_html(cli['nome'], cli['email'], v['valor_total'])
+                st.markdown(f"<div style='height: 300px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
 
-        # 3. Segunda Linha: Produtos e Pagamentos (Corrigido)
         if vendas and prods:
             st.markdown("<br>", unsafe_allow_html=True)
             df_vendas = pd.DataFrame(vendas)
@@ -169,20 +176,22 @@ def sistema_erp():
             g1, g2 = st.columns([1.5, 1])
             
             with g1:
-                top_prods = df_vendas.groupby('Produto')['valor_total'].sum().reset_index().sort_values('valor_total', ascending=False).head(5)
-                fig_bar = px.bar(top_prods, x='valor_total', y='Produto', orientation='h', text_auto='.2s', color='valor_total', color_continuous_scale='Blues')
-                fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='white', xaxis_title="", yaxis_title="", margin=dict(t=20, b=20, l=20, r=20), height=340)
-                html_bar = fig_bar.to_html(include_plotlyjs='cdn', full_html=False, config={'displayModeBar': False})
-                st.markdown(f"""<div class='box-padrao'><div class='box-header'>🏆 Produtos Mais Vendidos</div>{html_bar}</div>""", unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("##### 🏆 Produtos Mais Vendidos")
+                    top_prods = df_vendas.groupby('Produto')['valor_total'].sum().reset_index().sort_values('valor_total', ascending=False).head(5)
+                    fig_bar = px.bar(top_prods, x='valor_total', y='Produto', orientation='h', text_auto='.2s', color='valor_total', color_continuous_scale='Blues')
+                    fig_bar.update_layout(paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='white', xaxis_title="", yaxis_title="", margin=dict(t=10, b=10), height=280)
+                    st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
                 
             with g2:
-                pg = df_vendas.groupby('metodo_pagamento')['valor_total'].sum().reset_index()
-                fig_pie = px.pie(pg, values='valor_total', names='metodo_pagamento', hole=0.4, color_discrete_sequence=px.colors.sequential.RdBu)
-                fig_pie.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color='white', margin=dict(t=20, b=20), height=340)
-                html_pie = fig_pie.to_html(include_plotlyjs='cdn', full_html=False, config={'displayModeBar': False})
-                st.markdown(f"""<div class='box-padrao'><div class='box-header'>💳 Meios de Pagamento</div>{html_pie}</div>""", unsafe_allow_html=True)
+                with st.container(border=True):
+                    st.markdown("##### 💳 Meios de Pagamento")
+                    pg = df_vendas.groupby('metodo_pagamento')['valor_total'].sum().reset_index()
+                    fig_pie = px.pie(pg, values='valor_total', names='metodo_pagamento', hole=0.4, color_discrete_sequence=px.colors.sequential.RdBu)
+                    fig_pie.update_layout(paper_bgcolor='#1E293B', font_color='white', margin=dict(t=10, b=10), height=280)
+                    st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
 
-    # --- RESTANTE DO SISTEMA (ABAS FUNCIONAIS) ---
+    # --- RESTANTE DAS ABAS ---
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)"); clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
@@ -190,7 +199,7 @@ def sistema_erp():
             st.markdown("##### 🛒 Adicionar Itens"); cli_sel = st.selectbox("Cliente", [c['nome'] for c in clis]) if clis else None
             with st.container(border=True):
                 k1, k2 = st.columns([3, 1]); p = k1.selectbox("Produto", [x['nome'] for x in pas]) if pas else None; q = k2.number_input("Qtd", 1.0)
-                if st.button("Adicionar"): obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr})
+                if st.button("Adicionar"): obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr}); st.rerun()
         with c2:
             st.markdown("##### 🧾 Cupom"); st.write(pd.DataFrame(st.session_state['carrinho']))
             if st.button("FINALIZAR VENDA", type="primary"): 
