@@ -7,7 +7,11 @@ from datetime import datetime, date
 import os
 import time
 
-API_URL = "http://127.0.0.1:8000"
+# --- CONFIGURAÇÃO MANUAL (FORÇA BRUTA) ---
+# Cole aqui o link do seu Backend que você copiou do Render
+API_URL = "https://api-decant-oficial.onrender.com" 
+
+# (O resto do código continua igual...)
 st.set_page_config(page_title="Decant ERP", page_icon="💧", layout="wide")
 
 if 'carrinho' not in st.session_state: st.session_state['carrinho'] = []
@@ -54,19 +58,16 @@ def apply_custom_style():
 
 apply_custom_style()
 
-# --- FUNÇÃO BLINDADA CONTRA ERROS ---
+# --- FUNÇÃO BLINDADA ---
 def get_data(endpoint):
     try:
-        # Remove barras extras para evitar erros de URL
         endpoint = endpoint.strip("/")
         resp = requests.get(f"{API_URL}/{endpoint}/")
-        
-        # Só converte para JSON se a resposta for Sucesso (200)
         if resp.status_code == 200:
             return resp.json()
-        return [] # Retorna lista vazia se der erro (404, 500, etc)
+        return [] 
     except:
-        return [] # Retorna lista vazia se o servidor estiver desligado
+        return [] 
 
 def card_html(titulo, valor, subtexto, cor="card-dark"): 
     st.markdown(f"<div class='card-container {cor}'><div class='card-title'>{titulo}</div><div class='card-value'>{valor}</div><div style='font-size:12px; margin-top:10px; opacity:0.8'>{subtexto}</div></div>", unsafe_allow_html=True)
@@ -95,8 +96,8 @@ def tela_login():
                     if res.status_code == 200:
                         data = res.json()
                         st.session_state['logado'] = True; st.session_state['usuario'] = data['usuario']; st.session_state['cargo'] = data['cargo']; st.rerun()
-                    else: st.error("Credenciais inválidas")
-                except Exception as e: st.error(f"Erro: {e}")
+                    else: st.error("Credenciais inválidas ou Erro de Conexão com o Servidor.")
+                except Exception as e: st.error(f"Erro técnico: {e}")
 
 def sistema_erp():
     with st.sidebar:
@@ -105,7 +106,6 @@ def sistema_erp():
         if os.path.exists(logo_path): st.markdown("<div style='margin-bottom: 25px; text-align: center;'>", unsafe_allow_html=True); st.image(logo_path, width=160); st.markdown("</div>", unsafe_allow_html=True)
         else: st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:30px; padding-left:10px;'>{render_logo_svg(width='32px', color='#3B82F6')}<div style='font-family:Inter; font-weight:700; font-size:20px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
         
-        # MENU COMPLETO
         menu = [{"l": "Visão Geral", "i": "grid", "id": "dash"}, {"l": "PDV (Caixa)", "i": "basket", "id": "pdv"}, {"l": "Financeiro", "i": "cash-coin", "id": "fin"}, {"l": "CRM / Fidelidade", "i": "heart", "id": "crm"}, {"l": "Produtos", "i": "box-seam", "id": "prod"}, {"l": "Clientes", "i": "people", "id": "cli"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Preços", "i": "tags", "id": "prec"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Compras", "i": "cart", "id": "comp"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Vendas (Adm)", "i": "graph-up-arrow", "id": "vend"}, {"l": "Relatórios", "i": "bar-chart-line", "id": "rel"}, {"l": "Configurações", "i": "gear", "id": "cfg"}]
         sel = option_menu(None, [x["l"] for x in menu], icons=[x["i"] for x in menu], default_index=0, styles={"container": {"padding": "0!important", "background-color": "transparent"},"icon": {"color": "#94A3B8", "font-size": "14px"}, "nav-link": {"font-family":"Inter", "font-weight":"500", "font-size": "14px", "text-align": "left", "margin":"5px", "--hover-color": "#1E293B", "color": "#E2E8F0"},"nav-link-selected": {"background-color": "#3B82F6", "color": "#FFFFFF", "font-weight": "600"}})
         page_id = next(x["id"] for x in menu if x["l"] == sel)
@@ -113,14 +113,10 @@ def sistema_erp():
         st.markdown(f"<div style='background-color: #1E293B; padding: 10px; border-radius: 12px; margin-bottom: 10px; border: 1px solid #334155; text-align: center;'><div style='color: #94A3B8; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px;'>Bem-vindo</div><div style='color: white; font-weight: 600; font-size: 14px;'>{st.session_state['usuario']}</div><div style='color: #3B82F6; font-size: 11px;'>{st.session_state['cargo']}</div></div>", unsafe_allow_html=True)
         if st.button("Sair / Logout", use_container_width=True): st.session_state['logado'] = False; st.rerun()
 
-    # --- TELA CRM (CORRIGIDA) ---
     if page_id == "crm":
         header("CRM & Fidelização")
         st.info("Aqui aparecem clientes que compraram há mais de 25 dias e podem estar precisando de novos produtos.")
-        
-        # CORREÇÃO AQUI: Removemos a barra extra e usamos a função blindada
         ops = get_data("crm/oportunidades")
-        
         if ops:
             for op in ops:
                 with st.container(border=True):
@@ -128,17 +124,13 @@ def sistema_erp():
                     c1.markdown(f"**👤 {op['Cliente']}**")
                     c2.write(f"🛒 Comprou: {op['Último Produto']}")
                     c3.write(f"📅 {op['Dias sem Comprar']} dias atrás ({op['Status']})")
-                    
                     fone_limpo = ''.join(filter(str.isdigit, op['Telefone'] or ""))
                     msg = f"Olá {op['Cliente']}, notamos que faz {op['Dias sem Comprar']} dias que você comprou {op['Último Produto']}. Gostaria de repor seu estoque?"
                     link_zap = f"https://wa.me/55{fone_limpo}?text={msg}"
-                    
                     if fone_limpo: c4.link_button("💬 WhatsApp", link_zap, type="primary")
                     else: c4.write("Sem Telefone")
-        else:
-            st.success("🎉 Nenhum cliente inativo no momento! Todos compraram recentemente (menos de 25 dias).")
+        else: st.success("🎉 Nenhum cliente inativo no momento! Todos compraram recentemente (menos de 25 dias).")
 
-    # --- DEMAIS ABAS ---
     elif page_id == "dash":
         header("Visão Geral")
         d = get_data("financeiro/dashboard")
