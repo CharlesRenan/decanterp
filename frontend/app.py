@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 import plotly.express as px
+import plotly.graph_objects as go
 from streamlit_option_menu import option_menu
 from datetime import datetime, date
 import os
@@ -28,7 +29,6 @@ def apply_custom_style():
         .stApp { background-color: #0F172A; }
         .big-font { font-family: 'Inter', sans-serif !important; font-size: 36px !important; font-weight: 600 !important; color: #FFFFFF !important; margin-top: 40px !important; margin-bottom: 20px !important; line-height: 1.2 !important; }
         
-        /* Cards do Topo */
         .card-container { border-radius: 12px; padding: 24px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .card-blue { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #3B82F6; color: white; }
         .card-red { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); border: 1px solid #EF4444; color: white; }
@@ -37,12 +37,10 @@ def apply_custom_style():
         .card-title { font-size: 13px !important; font-weight: 600 !important; color: #94A3B8 !important; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
         .card-value { font-size: 32px; font-weight: 700 !important; color: #FFFFFF; margin-top: 0px; }
         
-        /* Sidebar e Inputs */
         div[data-testid="stSidebar"] { background-color: #0F172A; border-right: 1px solid #1E293B; }
         div[data-testid="stForm"] input { background-color: #1E293B !important; border: 1px solid #334155 !important; color: white; }
         div[data-testid="stFormSubmitButton"] button { background: linear-gradient(90deg, #3B82F6 0%, #2563EB 100%) !important; color: white !important; border: none; }
         
-        /* --- MÁGICA VISUAL: Estiliza a caixa padrão do Streamlit para ser escura e arredondada --- */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #1E293B;
             border: 1px solid #334155;
@@ -50,7 +48,6 @@ def apply_custom_style():
             padding: 20px;
         }
         
-        /* Estilos da Lista de Vendas */
         .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #334155; }
         .sales-row:last-child { border-bottom: none; }
         .sales-left { display: flex; align-items: center; gap: 12px; }
@@ -82,7 +79,6 @@ def get_sales_row_html(nome, email, valor):
 
 def header(titulo): st.markdown(f"<div class='big-font'>{titulo}</div>", unsafe_allow_html=True)
 
-# --- LOGIN COM "DESPERTADOR" (Resolve o problema do clique duplo) ---
 def tela_login():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
@@ -90,51 +86,30 @@ def tela_login():
         logo_path = "frontend/logo.png"
         if os.path.exists(logo_path): st.image(logo_path, use_container_width=True)
         else: st.markdown(f"<div style='display:flex; flex-direction:column; align-items:center;'>{render_logo_svg(width='80px', color='#3B82F6')}<div class='login-title'>Decant ERP</div></div>", unsafe_allow_html=True)
-        
         with st.form("login_form"):
             u_input = st.text_input("Usuário", placeholder="admin")
             p_input = st.text_input("Senha", type="password", placeholder="••••••")
             submit = st.form_submit_button("ENTRAR")
-            
             if submit:
-                # Loop de insistência (Tenta 3 vezes antes de desistir)
-                sucesso = False
-                mensagem_erro = ""
-                
+                sucesso = False; mensagem_erro = ""
                 with st.spinner("Conectando ao sistema..."):
                     for tentativa in range(1, 4):
                         try:
                             res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""}, timeout=10)
-                            if res.status_code == 200:
-                                sucesso = True
-                                break # Conectou! Sai do loop
-                            else:
-                                mensagem_erro = "Credenciais Inválidas"
-                                break # Conectou mas senha tá errada, para de tentar
+                            if res.status_code == 200: sucesso = True; break
+                            else: mensagem_erro = "Credenciais Inválidas"; break
                         except:
-                            # Se deu erro de conexão, espera e tenta de novo
-                            if tentativa < 3:
-                                time.sleep(3) # Espera 3 segundos pro servidor acordar
-                            else:
-                                mensagem_erro = "Servidor Offline ou Demorando muito."
-
+                            if tentativa < 3: time.sleep(3)
+                            else: mensagem_erro = "Servidor Offline."
                 if sucesso:
-                    data = res.json()
-                    st.session_state['logado'] = True
-                    st.session_state['usuario'] = data['usuario']
-                    st.session_state['cargo'] = data['cargo']
-                    st.success("Login OK! Redirecionando...")
-                    time.sleep(0.5)
-                    st.rerun() 
-                else:
-                    st.error(mensagem_erro)
+                    data = res.json(); st.session_state['logado'] = True; st.session_state['usuario'] = data['usuario']; st.session_state['cargo'] = data['cargo']; st.success("Login OK!"); time.sleep(0.5); st.rerun()
+                else: st.error(mensagem_erro)
 
 def sistema_erp():
     with st.sidebar:
         logo_path = "frontend/logo.png"
         if os.path.exists(logo_path): st.markdown("<div style='margin-bottom: 25px; text-align: center;'>", unsafe_allow_html=True); st.image(logo_path, width=160); st.markdown("</div>", unsafe_allow_html=True)
         else: st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:30px; padding-left:10px;'>{render_logo_svg(width='32px', color='#3B82F6')}<div style='font-family:Inter; font-weight:700; font-size:20px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
-        
         menu = [{"l": "Visão Geral", "i": "grid", "id": "dash"}, {"l": "PDV (Caixa)", "i": "basket", "id": "pdv"}, {"l": "Financeiro", "i": "cash-coin", "id": "fin"}, {"l": "CRM / Fidelidade", "i": "heart", "id": "crm"}, {"l": "Produtos", "i": "box-seam", "id": "prod"}, {"l": "Clientes", "i": "people", "id": "cli"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Preços", "i": "tags", "id": "prec"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Compras", "i": "cart", "id": "comp"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Vendas (Adm)", "i": "graph-up-arrow", "id": "vend"}, {"l": "Relatórios", "i": "bar-chart-line", "id": "rel"}, {"l": "Configurações", "i": "gear", "id": "cfg"}]
         sel = option_menu(None, [x["l"] for x in menu], icons=[x["i"] for x in menu], default_index=0, styles={"container": {"padding": "0!important", "background-color": "transparent"},"icon": {"color": "#94A3B8", "font-size": "14px"}, "nav-link": {"font-family":"Inter", "font-weight":"500", "font-size": "14px", "text-align": "left", "margin":"5px", "--hover-color": "#1E293B", "color": "#E2E8F0"},"nav-link-selected": {"background-color": "#3B82F6", "color": "#FFFFFF", "font-weight": "600"}})
         page_id = next(x["id"] for x in menu if x["l"] == sel)
@@ -152,13 +127,11 @@ def sistema_erp():
         with c4: card_html("SISTEMA", "Online", "v2.0 CRM", "card-dark")
         
         st.markdown("<br>", unsafe_allow_html=True)
-        
-        c_graf, c_vendas = st.columns([1.6, 1])
+        c_graf, c_vendas, c_meta = st.columns([1.2, 1, 0.8])
         
         with c_graf:
-            # AQUI: Usando o container nativo que funciona (sem HTML injetado)
             with st.container(border=True): 
-                st.markdown("##### Fluxo de Caixa Mensal")
+                st.markdown("##### Fluxo de Caixa")
                 dados = d.get('grafico', [])
                 if dados: fig = px.bar(pd.DataFrame(dados), x="Mês", y="Valor", color="Tipo", barmode='group', color_discrete_map={'Entradas': '#10B981', 'Saídas': '#3B82F6'})
                 else: fig = px.bar(pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor")
@@ -175,24 +148,35 @@ def sistema_erp():
                     rows_html += get_sales_row_html(cli['nome'], cli['email'], v['valor_total'])
                 st.markdown(f"<div style='height: 300px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
 
+        with c_meta:
+            with st.container(border=True):
+                st.markdown("##### 🎯 Meta Mensal")
+                receita_atual = d.get('receita', 0)
+                fig_gauge = go.Figure(go.Indicator(
+                    mode = "gauge+number+delta",
+                    value = receita_atual,
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    title = {'text': "Alvo: R$ 10k"},
+                    delta = {'reference': 10000},
+                    gauge = {'axis': {'range': [None, 10000]}, 'bar': {'color': "#3B82F6"}, 'steps': [{'range': [0, 5000], 'color': "#1E293B"}, {'range': [5000, 10000], 'color': "#334155"}]}
+                ))
+                fig_gauge.update_layout(paper_bgcolor='#1E293B', font={'color': "white", 'family': "Inter"}, margin=dict(t=30,b=10,l=20,r=20), height=300)
+                st.plotly_chart(fig_gauge, use_container_width=True)
+
         if vendas and prods:
             st.markdown("<br>", unsafe_allow_html=True)
             df_vendas = pd.DataFrame(vendas)
             map_prods = {p['id']: p['nome'] for p in prods}
             df_vendas['Produto'] = df_vendas['produto_id'].map(map_prods)
             g1, g2 = st.columns([1.5, 1])
-            
             with g1:
-                # AQUI: Container nativo para o gráfico de produtos
                 with st.container(border=True):
                     st.markdown("##### 🏆 Produtos Mais Vendidos")
                     top_prods = df_vendas.groupby('Produto')['valor_total'].sum().reset_index().sort_values('valor_total', ascending=False).head(5)
                     fig_bar = px.bar(top_prods, x='valor_total', y='Produto', orientation='h', text_auto='.2s', color='valor_total', color_continuous_scale='Blues')
                     fig_bar.update_layout(paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font_color='white', xaxis_title="", yaxis_title="", margin=dict(t=10, b=10), height=280)
                     st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
-                
             with g2:
-                # AQUI: Container nativo para o gráfico de pizza
                 with st.container(border=True):
                     st.markdown("##### 💳 Meios de Pagamento")
                     pg = df_vendas.groupby('metodo_pagamento')['valor_total'].sum().reset_index()
@@ -200,7 +184,6 @@ def sistema_erp():
                     fig_pie.update_layout(paper_bgcolor='#1E293B', font_color='white', margin=dict(t=10, b=10), height=280)
                     st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
 
-    # --- RESTANTE DAS ABAS ---
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)"); clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
@@ -208,15 +191,36 @@ def sistema_erp():
             st.markdown("##### 🛒 Adicionar Itens"); cli_sel = st.selectbox("Cliente", [c['nome'] for c in clis]) if clis else None
             with st.container(border=True):
                 k1, k2 = st.columns([3, 1]); p = k1.selectbox("Produto", [x['nome'] for x in pas]) if pas else None; q = k2.number_input("Qtd", 1.0)
-                if st.button("Adicionar"): obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr}); st.rerun()
+                if st.button("Adicionar"): obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr, "custo": obj['custo']}); st.rerun()
         with c2:
-            st.markdown("##### 🧾 Cupom"); st.write(pd.DataFrame(st.session_state['carrinho']))
-            if st.button("FINALIZAR VENDA", type="primary"): 
-                cid = next(x['id'] for x in clis if x['nome']==cli_sel)
-                requests.post(f"{API_URL}/vendas/pdv/", json={"cliente_id":cid,"itens":[{"produto_id":i['id'],"quantidade":i['qtd'],"valor_total":i['total']} for i in st.session_state['carrinho']],"metodo_pagamento":"Pix"})
-                st.session_state['carrinho']=[]; st.success("OK!"); st.rerun()
+            st.markdown("##### 🧾 Cupom & Lucro")
+            if st.session_state['carrinho']:
+                df_carrinho = pd.DataFrame(st.session_state['carrinho'])
+                st.write(df_carrinho[['nome', 'qtd', 'total']])
+                total_venda = df_carrinho['total'].sum()
+                custo_venda = sum(item['custo'] * item['qtd'] for item in st.session_state['carrinho'])
+                lucro = total_venda - custo_venda
+                margem = (lucro / total_venda * 100) if total_venda > 0 else 0
+                st.markdown("---")
+                col_lucro, col_margem = st.columns(2)
+                col_lucro.metric("Lucro Previsto", f"R$ {lucro:.2f}")
+                col_margem.metric("Margem", f"{margem:.1f}%")
+                st.progress(min(int(margem), 100))
+                if st.button("FINALIZAR VENDA", type="primary"): 
+                    cid = next(x['id'] for x in clis if x['nome']==cli_sel)
+                    requests.post(f"{API_URL}/vendas/pdv/", json={"cliente_id":cid,"itens":[{"produto_id":i['id'],"quantidade":i['qtd'],"valor_total":i['total']} for i in st.session_state['carrinho']],"metodo_pagamento":"Pix"})
+                    st.session_state['carrinho']=[]; st.success("OK!"); st.rerun()
 
-    elif page_id == "prod": header("Produtos"); st.dataframe(pd.DataFrame(get_data("produtos")), use_container_width=True)
+    elif page_id == "prod": 
+        header("Produtos"); prods = get_data("produtos"); t1, t2, t3 = st.tabs(["Estoque", "Kardex", "Novo"])
+        with t1: st.dataframe(pd.DataFrame(prods), use_container_width=True)
+        with t2: st.dataframe(pd.DataFrame(get_data("estoque/kardex")), use_container_width=True)
+        with t3:
+            with st.form("np"):
+                n = st.text_input("Nome"); t = st.selectbox("Tipo", ["Materia Prima", "Produto Acabado"]); e = st.number_input("Estoque"); c = st.number_input("Custo")
+                loc = st.text_input("Localização Física", placeholder="Ex: Corredor A, Prateleira 2")
+                if st.form_submit_button("Salvar"): requests.post(f"{API_URL}/produtos/", json={"nome":n,"tipo":t,"unidade":"Un","estoque_atual":e,"custo":c, "localizacao": loc}); st.success("Salvo!"); st.rerun()
+
     elif page_id == "fab": header("Chão de Fábrica"); st.info("Use o app para registrar produção."); st.dataframe(pd.DataFrame(get_data("producao/historico/")), use_container_width=True)
     elif page_id == "rel": header("Relatórios"); st.dataframe(pd.DataFrame(get_data("relatorios/estoque/")['itens']), use_container_width=True)
     elif page_id == "cli": header("Clientes"); st.dataframe(pd.DataFrame(get_data("clientes")), use_container_width=True)
@@ -227,7 +231,23 @@ def sistema_erp():
     elif page_id == "forn": header("Fornecedores"); st.dataframe(pd.DataFrame(get_data("fornecedores")))
     elif page_id == "prec": header("Preços"); st.dataframe(pd.DataFrame(get_data("cotacoes")))
     elif page_id == "vend": header("Vendas"); st.dataframe(pd.DataFrame(get_data("vendas")))
-    elif page_id == "cfg": header("Config"); st.button("Resetar", on_click=lambda: requests.delete(f"{API_URL}/sistema/resetar_dados/"))
+    
+    # --- CORREÇÃO DO RESET (Agora o botão fala!) ---
+    elif page_id == "cfg": 
+        header("Configurações")
+        st.warning("⚠️ Atenção: Esta ação apagará TODOS os dados para atualizar o banco de dados. Use apenas se necessário.")
+        if st.button("🗑️ RESETAR SISTEMA AGORA", type="primary"):
+            try:
+                with st.spinner("Apagando dados e recriando tabelas..."):
+                    res = requests.delete(f"{API_URL}/sistema/resetar_dados/")
+                    if res.status_code == 200:
+                        st.success("✅ Sistema resetado com sucesso! As tabelas foram atualizadas.")
+                        time.sleep(2)
+                        st.rerun() # Recarrega a página para limpar erros
+                    else:
+                        st.error(f"Erro ao resetar: {res.text}")
+            except Exception as e:
+                st.error(f"Erro de conexão com o servidor: {e}")
 
 if st.session_state['logado']: sistema_erp()
 else: tela_login()
