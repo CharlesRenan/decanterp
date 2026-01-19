@@ -42,8 +42,7 @@ def apply_custom_style():
         div[data-testid="stForm"] input { background-color: #1E293B !important; border: 1px solid #334155 !important; color: white; }
         div[data-testid="stFormSubmitButton"] button { background: linear-gradient(90deg, #3B82F6 0%, #2563EB 100%) !important; color: white !important; border: none; }
         
-        /* --- ESTILO PARA AS CAIXAS DOS GRÁFICOS (Containers Nativos) --- */
-        /* Isso pinta o fundo e a borda dos st.container(border=True) */
+        /* --- MÁGICA VISUAL: Estiliza a caixa padrão do Streamlit para ser escura e arredondada --- */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #1E293B;
             border: 1px solid #334155;
@@ -83,7 +82,7 @@ def get_sales_row_html(nome, email, valor):
 
 def header(titulo): st.markdown(f"<div class='big-font'>{titulo}</div>", unsafe_allow_html=True)
 
-# --- LOGIN COM AUTO-RETRY ---
+# --- LOGIN COM "DESPERTADOR" (Resolve o problema do clique duplo) ---
 def tela_login():
     c1, c2, c3 = st.columns([1, 1.2, 1])
     with c2:
@@ -98,29 +97,37 @@ def tela_login():
             submit = st.form_submit_button("ENTRAR")
             
             if submit:
+                # Loop de insistência (Tenta 3 vezes antes de desistir)
+                sucesso = False
+                mensagem_erro = ""
+                
                 with st.spinner("Conectando ao sistema..."):
-                    try:
-                        # Tenta conectar
-                        res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""})
-                    except:
-                        # Se falhar (servidor dormindo), espera 2s e tenta de novo automaticamente
-                        time.sleep(2)
+                    for tentativa in range(1, 4):
                         try:
-                            res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""})
-                        except Exception as e:
-                            st.error(f"Erro fatal de conexão: {e}")
-                            res = None
+                            res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""}, timeout=10)
+                            if res.status_code == 200:
+                                sucesso = True
+                                break # Conectou! Sai do loop
+                            else:
+                                mensagem_erro = "Credenciais Inválidas"
+                                break # Conectou mas senha tá errada, para de tentar
+                        except:
+                            # Se deu erro de conexão, espera e tenta de novo
+                            if tentativa < 3:
+                                time.sleep(3) # Espera 3 segundos pro servidor acordar
+                            else:
+                                mensagem_erro = "Servidor Offline ou Demorando muito."
 
-                    if res and res.status_code == 200:
-                        data = res.json()
-                        st.session_state['logado'] = True
-                        st.session_state['usuario'] = data['usuario']
-                        st.session_state['cargo'] = data['cargo']
-                        st.success("Login OK! Acessando...")
-                        time.sleep(0.5)
-                        st.rerun() # Força a atualização imediata
-                    else:
-                        st.error("Acesso Negado ou Servidor Offline.")
+                if sucesso:
+                    data = res.json()
+                    st.session_state['logado'] = True
+                    st.session_state['usuario'] = data['usuario']
+                    st.session_state['cargo'] = data['cargo']
+                    st.success("Login OK! Redirecionando...")
+                    time.sleep(0.5)
+                    st.rerun() 
+                else:
+                    st.error(mensagem_erro)
 
 def sistema_erp():
     with st.sidebar:
@@ -148,9 +155,9 @@ def sistema_erp():
         
         c_graf, c_vendas = st.columns([1.6, 1])
         
-        # MUDANÇA AQUI: Usando Container Nativo (Isso resolve a caixa vazia)
         with c_graf:
-            with st.container(border=True): # Borda automática do Streamlit
+            # AQUI: Usando o container nativo que funciona (sem HTML injetado)
+            with st.container(border=True): 
                 st.markdown("##### Fluxo de Caixa Mensal")
                 dados = d.get('grafico', [])
                 if dados: fig = px.bar(pd.DataFrame(dados), x="Mês", y="Valor", color="Tipo", barmode='group', color_discrete_map={'Entradas': '#10B981', 'Saídas': '#3B82F6'})
@@ -176,6 +183,7 @@ def sistema_erp():
             g1, g2 = st.columns([1.5, 1])
             
             with g1:
+                # AQUI: Container nativo para o gráfico de produtos
                 with st.container(border=True):
                     st.markdown("##### 🏆 Produtos Mais Vendidos")
                     top_prods = df_vendas.groupby('Produto')['valor_total'].sum().reset_index().sort_values('valor_total', ascending=False).head(5)
@@ -184,6 +192,7 @@ def sistema_erp():
                     st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
                 
             with g2:
+                # AQUI: Container nativo para o gráfico de pizza
                 with st.container(border=True):
                     st.markdown("##### 💳 Meios de Pagamento")
                     pg = df_vendas.groupby('metodo_pagamento')['valor_total'].sum().reset_index()
