@@ -57,6 +57,10 @@ def apply_custom_style():
         .sales-val { font-size: 14px; color: white; font-weight: 700; }
         .sales-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-top: 4px; display: inline-block; font-weight: 600; }
         .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34D399; }
+        
+        /* Botão de Lixeira */
+        div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border: 1px solid #EF4444 !important; background-color: rgba(239, 68, 68, 0.1) !important; color: #EF4444 !important; }
+        div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { background-color: #EF4444 !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -187,29 +191,56 @@ def sistema_erp():
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)"); clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
+        
         with c1:
-            st.markdown("##### 🛒 Adicionar Itens"); cli_sel = st.selectbox("Cliente", [c['nome'] for c in clis]) if clis else None
+            st.markdown("##### 🛒 Adicionar Itens")
+            
+            # --- CORREÇÃO 1: SELEÇÃO DE CLIENTE ---
+            lista_clientes = [c['nome'] for c in clis] if clis else []
+            cli_sel = st.selectbox("👤 Cliente", lista_clientes) if lista_clientes else None
+            if not lista_clientes: st.warning("Cadastre um cliente na aba 'Clientes' primeiro.")
+            
             with st.container(border=True):
                 k1, k2 = st.columns([3, 1]); p = k1.selectbox("Produto", [x['nome'] for x in pas]) if pas else None; q = k2.number_input("Qtd", 1.0)
-                if st.button("Adicionar"): obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr, "custo": obj['custo']}); st.rerun()
+                if st.button("Adicionar Item", use_container_width=True): 
+                    obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; 
+                    st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr, "custo": obj['custo']}); st.rerun()
+        
         with c2:
             st.markdown("##### 🧾 Cupom & Lucro")
+            
+            # --- CORREÇÃO 2: LIXEIRA NO CARRINHO ---
             if st.session_state['carrinho']:
-                df_carrinho = pd.DataFrame(st.session_state['carrinho'])
-                st.write(df_carrinho[['nome', 'qtd', 'total']])
-                total_venda = df_carrinho['total'].sum()
+                with st.container(border=True):
+                    for i, item in enumerate(st.session_state['carrinho']):
+                        col_nome, col_qtd, col_val, col_del = st.columns([3, 1, 1.5, 0.8])
+                        col_nome.write(f"**{item['nome']}**")
+                        col_qtd.write(f"{int(item['qtd'])}x")
+                        col_val.write(f"R${item['total']:.0f}")
+                        if col_del.button("🗑️", key=f"del_{i}"):
+                            st.session_state['carrinho'].pop(i)
+                            st.rerun()
+                            
+                total_venda = sum(item['total'] for item in st.session_state['carrinho'])
                 custo_venda = sum(item['custo'] * item['qtd'] for item in st.session_state['carrinho'])
                 lucro = total_venda - custo_venda
                 margem = (lucro / total_venda * 100) if total_venda > 0 else 0
-                st.markdown("---")
+                
+                st.divider()
                 col_lucro, col_margem = st.columns(2)
                 col_lucro.metric("Lucro Previsto", f"R$ {lucro:.2f}")
                 col_margem.metric("Margem", f"{margem:.1f}%")
                 st.progress(min(int(margem), 100))
-                if st.button("FINALIZAR VENDA", type="primary"): 
-                    cid = next(x['id'] for x in clis if x['nome']==cli_sel)
-                    requests.post(f"{API_URL}/vendas/pdv/", json={"cliente_id":cid,"itens":[{"produto_id":i['id'],"quantidade":i['qtd'],"valor_total":i['total']} for i in st.session_state['carrinho']],"metodo_pagamento":"Pix"})
-                    st.session_state['carrinho']=[]; st.success("OK!"); st.rerun()
+                
+                if st.button("✅ FINALIZAR VENDA", type="primary", use_container_width=True): 
+                    if cli_sel:
+                        cid = next(x['id'] for x in clis if x['nome']==cli_sel)
+                        requests.post(f"{API_URL}/vendas/pdv/", json={"cliente_id":cid,"itens":[{"produto_id":i['id'],"quantidade":i['qtd'],"valor_total":i['total']} for i in st.session_state['carrinho']],"metodo_pagamento":"Pix"})
+                        st.session_state['carrinho']=[]; st.success("Venda Realizada!"); time.sleep(1); st.rerun()
+                    else:
+                        st.error("Selecione um cliente!")
+            else:
+                st.info("O carrinho está vazio.")
 
     elif page_id == "prod": 
         header("Produtos"); prods = get_data("produtos"); t1, t2, t3 = st.tabs(["Estoque", "Kardex", "Novo"])
@@ -232,7 +263,6 @@ def sistema_erp():
     elif page_id == "prec": header("Preços"); st.dataframe(pd.DataFrame(get_data("cotacoes")))
     elif page_id == "vend": header("Vendas"); st.dataframe(pd.DataFrame(get_data("vendas")))
     
-    # --- CORREÇÃO DO RESET (Agora o botão fala!) ---
     elif page_id == "cfg": 
         header("Configurações")
         st.warning("⚠️ Atenção: Esta ação apagará TODOS os dados para atualizar o banco de dados. Use apenas se necessário.")
@@ -243,7 +273,7 @@ def sistema_erp():
                     if res.status_code == 200:
                         st.success("✅ Sistema resetado com sucesso! As tabelas foram atualizadas.")
                         time.sleep(2)
-                        st.rerun() # Recarrega a página para limpar erros
+                        st.rerun()
                     else:
                         st.error(f"Erro ao resetar: {res.text}")
             except Exception as e:
