@@ -8,7 +8,10 @@ from datetime import datetime, date
 import os
 import time
 
-# --- CONFIGURAÇÃO ---
+# --- CONFIGURAÇÃO DE CONEXÃO ---
+# SE ESTIVER RODANDO TUDO NO SEU PC (LOCAL), DESCOMENTE A LINHA DE BAIXO:
+# API_URL = "http://127.0.0.1:8000"
+# SE ESTIVER USANDO O RENDER (NUVEM):
 API_URL = "https://api-decant-oficial.onrender.com"
 
 st.set_page_config(page_title="Decant ERP", page_icon="💧", layout="wide")
@@ -58,7 +61,6 @@ def apply_custom_style():
         .sales-badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; margin-top: 4px; display: inline-block; font-weight: 600; }
         .badge-green { background-color: rgba(16, 185, 129, 0.2); color: #34D399; }
         
-        /* Botão de Lixeira */
         div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border: 1px solid #EF4444 !important; background-color: rgba(239, 68, 68, 0.1) !important; color: #EF4444 !important; }
         div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { background-color: #EF4444 !important; color: white !important; }
     </style>
@@ -191,11 +193,8 @@ def sistema_erp():
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)"); clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
-        
         with c1:
             st.markdown("##### 🛒 Adicionar Itens")
-            
-            # --- CORREÇÃO 1: SELEÇÃO DE CLIENTE ---
             lista_clientes = [c['nome'] for c in clis] if clis else []
             cli_sel = st.selectbox("👤 Cliente", lista_clientes) if lista_clientes else None
             if not lista_clientes: st.warning("Cadastre um cliente na aba 'Clientes' primeiro.")
@@ -208,8 +207,6 @@ def sistema_erp():
         
         with c2:
             st.markdown("##### 🧾 Cupom & Lucro")
-            
-            # --- CORREÇÃO 2: LIXEIRA NO CARRINHO ---
             if st.session_state['carrinho']:
                 with st.container(border=True):
                     for i, item in enumerate(st.session_state['carrinho']):
@@ -225,23 +222,60 @@ def sistema_erp():
                 custo_venda = sum(item['custo'] * item['qtd'] for item in st.session_state['carrinho'])
                 lucro = total_venda - custo_venda
                 margem = (lucro / total_venda * 100) if total_venda > 0 else 0
-                
                 st.divider()
                 col_lucro, col_margem = st.columns(2)
                 col_lucro.metric("Lucro Previsto", f"R$ {lucro:.2f}")
                 col_margem.metric("Margem", f"{margem:.1f}%")
                 st.progress(min(int(margem), 100))
-                
                 if st.button("✅ FINALIZAR VENDA", type="primary", use_container_width=True): 
                     if cli_sel:
                         cid = next(x['id'] for x in clis if x['nome']==cli_sel)
                         requests.post(f"{API_URL}/vendas/pdv/", json={"cliente_id":cid,"itens":[{"produto_id":i['id'],"quantidade":i['qtd'],"valor_total":i['total']} for i in st.session_state['carrinho']],"metodo_pagamento":"Pix"})
                         st.session_state['carrinho']=[]; st.success("Venda Realizada!"); time.sleep(1); st.rerun()
-                    else:
-                        st.error("Selecione um cliente!")
-            else:
-                st.info("O carrinho está vazio.")
+                    else: st.error("Selecione um cliente!")
+            else: st.info("O carrinho está vazio.")
 
+    # --- ABA CLIENTES CORRIGIDA (AGORA COM FORMULÁRIO) ---
+    elif page_id == "cli":
+        header("Clientes")
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.markdown("##### Novo Cliente")
+            with st.form("new_cli"):
+                n = st.text_input("Nome"); e = st.text_input("Email"); t = st.text_input("Telefone")
+                if st.form_submit_button("Cadastrar"):
+                    requests.post(f"{API_URL}/clientes/", json={"nome":n, "email":e, "telefone":t}); st.success("Cliente cadastrado!"); time.sleep(1); st.rerun()
+        with c2:
+            st.markdown("##### Lista de Clientes")
+            clis = get_data("clientes")
+            if clis: st.dataframe(pd.DataFrame(clis)[['id','nome','email','telefone']], use_container_width=True, hide_index=True)
+            else: st.info("Nenhum cliente cadastrado.")
+
+    # --- ABA FINANCEIRO CORRIGIDA ---
+    elif page_id == "fin":
+        header("Gestão Financeira")
+        t1, t2 = st.tabs(["📝 Novo Lançamento", "📜 Contas"])
+        with t1:
+            with st.form("frm_fin"):
+                c1, c2 = st.columns(2); desc = c1.text_input("Descrição"); tipo = c2.selectbox("Tipo", ["Despesa", "Receita"])
+                c3, c4 = st.columns(2); valor = c3.number_input("Valor (R$)", min_value=0.01); cat = c4.selectbox("Categoria", ["Custos Fixos", "Despesa Variável", "Impostos", "Receita Extra", "Investimento"])
+                c5, c6 = st.columns(2); dt_venc = c5.date_input("Vencimento"); pago = c6.checkbox("Já foi pago?")
+                if st.form_submit_button("Salvar Lançamento"):
+                    requests.post(f"{API_URL}/financeiro/lancamento/", json={"descricao": desc, "tipo": tipo, "categoria": cat, "valor": valor, "data_vencimento": str(dt_venc), "pago": pago}); st.success("Lançado!"); st.rerun()
+        with t2:
+            lancamentos = get_data("financeiro/lancamentos")
+            if lancamentos: st.dataframe(pd.DataFrame(lancamentos), use_container_width=True)
+
+    # --- ABA FORNECEDORES CORRIGIDA ---
+    elif page_id == "forn":
+        header("Fornecedores")
+        with st.form("nf"):
+            n = st.text_input("Empresa"); p = st.number_input("Prazo Entrega (dias)", 1)
+            if st.form_submit_button("Salvar"): requests.post(f"{API_URL}/fornecedores/", json={"nome":n,"prazo_entrega_dias":p}); st.success("OK"); st.rerun()
+        st.divider()
+        st.dataframe(pd.DataFrame(get_data("fornecedores")), use_container_width=True)
+
+    # --- OUTRAS ABAS (Mantidas iguais) ---
     elif page_id == "prod": 
         header("Produtos"); prods = get_data("produtos"); t1, t2, t3 = st.tabs(["Estoque", "Kardex", "Novo"])
         with t1: st.dataframe(pd.DataFrame(prods), use_container_width=True)
@@ -254,30 +288,22 @@ def sistema_erp():
 
     elif page_id == "fab": header("Chão de Fábrica"); st.info("Use o app para registrar produção."); st.dataframe(pd.DataFrame(get_data("producao/historico/")), use_container_width=True)
     elif page_id == "rel": header("Relatórios"); st.dataframe(pd.DataFrame(get_data("relatorios/estoque/")['itens']), use_container_width=True)
-    elif page_id == "cli": header("Clientes"); st.dataframe(pd.DataFrame(get_data("clientes")), use_container_width=True)
     elif page_id == "mrp": header("Planejamento"); st.warning("Cadastre fórmulas na engenharia.")
     elif page_id == "eng": header("Engenharia"); st.info("Cadastro de fórmulas.")
-    elif page_id == "fin": header("Financeiro"); st.dataframe(pd.DataFrame(get_data("financeiro/lancamentos")))
     elif page_id == "comp": header("Compras"); st.dataframe(pd.DataFrame(get_data("compras")))
-    elif page_id == "forn": header("Fornecedores"); st.dataframe(pd.DataFrame(get_data("fornecedores")))
     elif page_id == "prec": header("Preços"); st.dataframe(pd.DataFrame(get_data("cotacoes")))
     elif page_id == "vend": header("Vendas"); st.dataframe(pd.DataFrame(get_data("vendas")))
     
     elif page_id == "cfg": 
         header("Configurações")
-        st.warning("⚠️ Atenção: Esta ação apagará TODOS os dados para atualizar o banco de dados. Use apenas se necessário.")
+        st.warning("⚠️ Atenção: Esta ação apagará TODOS os dados para atualizar o banco de dados.")
         if st.button("🗑️ RESETAR SISTEMA AGORA", type="primary"):
             try:
                 with st.spinner("Apagando dados e recriando tabelas..."):
                     res = requests.delete(f"{API_URL}/sistema/resetar_dados/")
-                    if res.status_code == 200:
-                        st.success("✅ Sistema resetado com sucesso! As tabelas foram atualizadas.")
-                        time.sleep(2)
-                        st.rerun()
-                    else:
-                        st.error(f"Erro ao resetar: {res.text}")
-            except Exception as e:
-                st.error(f"Erro de conexão com o servidor: {e}")
+                    if res.status_code == 200: st.success("✅ Sistema resetado com sucesso!"); time.sleep(2); st.rerun()
+                    else: st.error(f"Erro ao resetar: {res.text}")
+            except Exception as e: st.error(f"Erro de conexão: {e}")
 
 if st.session_state['logado']: sistema_erp()
 else: tela_login()
