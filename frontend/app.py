@@ -8,10 +8,8 @@ from datetime import datetime, date
 import os
 import time
 
-# --- CONFIGURAÇÃO DE CONEXÃO ---
-# SE ESTIVER RODANDO TUDO NO SEU PC (LOCAL), DESCOMENTE A LINHA DE BAIXO:
+# --- CONFIGURAÇÃO ---
 # API_URL = "http://127.0.0.1:8000"
-# SE ESTIVER USANDO O RENDER (NUVEM):
 API_URL = "https://api-decant-oficial.onrender.com"
 
 st.set_page_config(page_title="Decant ERP", page_icon="💧", layout="wide")
@@ -63,6 +61,9 @@ def apply_custom_style():
         
         div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border: 1px solid #EF4444 !important; background-color: rgba(239, 68, 68, 0.1) !important; color: #EF4444 !important; }
         div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { background-color: #EF4444 !important; color: white !important; }
+        
+        /* Ajuste fino para o input de número na tabela ficar alinhado */
+        div[data-testid="stNumberInput"] input { min-height: 30px; padding: 5px; font-size: 14px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -193,6 +194,7 @@ def sistema_erp():
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)"); clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
+        
         with c1:
             st.markdown("##### 🛒 Adicionar Itens")
             lista_clientes = [c['nome'] for c in clis] if clis else []
@@ -203,16 +205,28 @@ def sistema_erp():
                 k1, k2 = st.columns([3, 1]); p = k1.selectbox("Produto", [x['nome'] for x in pas]) if pas else None; q = k2.number_input("Qtd", 1.0)
                 if st.button("Adicionar Item", use_container_width=True): 
                     obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; 
-                    st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr, "custo": obj['custo']}); st.rerun()
+                    # AGORA SALVAMOS O PREÇO UNITÁRIO PARA PODER RECALCULAR DEPOIS
+                    st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr, "custo": obj['custo'], "preco_unitario": pr}); st.rerun()
         
         with c2:
             st.markdown("##### 🧾 Cupom & Lucro")
             if st.session_state['carrinho']:
                 with st.container(border=True):
                     for i, item in enumerate(st.session_state['carrinho']):
-                        col_nome, col_qtd, col_val, col_del = st.columns([3, 1, 1.5, 0.8])
+                        # Layout da linha do carrinho: Nome | Quantidade (Editável) | Preço | Lixeira
+                        col_nome, col_qtd, col_val, col_del = st.columns([3, 1.5, 1.5, 0.8])
                         col_nome.write(f"**{item['nome']}**")
-                        col_qtd.write(f"{int(item['qtd'])}x")
+                        
+                        # --- AQUI ESTÁ A MÁGICA DA EDIÇÃO ---
+                        nova_qtd = col_qtd.number_input("Qtd", min_value=1.0, value=float(item['qtd']), key=f"qtd_{i}", label_visibility="collapsed")
+                        
+                        # Se a quantidade mudar, recalcula tudo na hora
+                        if nova_qtd != item['qtd']:
+                            st.session_state['carrinho'][i]['qtd'] = nova_qtd
+                            st.session_state['carrinho'][i]['total'] = nova_qtd * item['preco_unitario']
+                            st.rerun()
+                        # ------------------------------------
+
                         col_val.write(f"R${item['total']:.0f}")
                         if col_del.button("🗑️", key=f"del_{i}"):
                             st.session_state['carrinho'].pop(i)
@@ -235,7 +249,6 @@ def sistema_erp():
                     else: st.error("Selecione um cliente!")
             else: st.info("O carrinho está vazio.")
 
-    # --- ABA CLIENTES CORRIGIDA (AGORA COM FORMULÁRIO) ---
     elif page_id == "cli":
         header("Clientes")
         c1, c2 = st.columns([1, 2])
@@ -251,7 +264,6 @@ def sistema_erp():
             if clis: st.dataframe(pd.DataFrame(clis)[['id','nome','email','telefone']], use_container_width=True, hide_index=True)
             else: st.info("Nenhum cliente cadastrado.")
 
-    # --- ABA FINANCEIRO CORRIGIDA ---
     elif page_id == "fin":
         header("Gestão Financeira")
         t1, t2 = st.tabs(["📝 Novo Lançamento", "📜 Contas"])
@@ -266,7 +278,6 @@ def sistema_erp():
             lancamentos = get_data("financeiro/lancamentos")
             if lancamentos: st.dataframe(pd.DataFrame(lancamentos), use_container_width=True)
 
-    # --- ABA FORNECEDORES CORRIGIDA ---
     elif page_id == "forn":
         header("Fornecedores")
         with st.form("nf"):
@@ -275,7 +286,6 @@ def sistema_erp():
         st.divider()
         st.dataframe(pd.DataFrame(get_data("fornecedores")), use_container_width=True)
 
-    # --- OUTRAS ABAS (Mantidas iguais) ---
     elif page_id == "prod": 
         header("Produtos"); prods = get_data("produtos"); t1, t2, t3 = st.tabs(["Estoque", "Kardex", "Novo"])
         with t1: st.dataframe(pd.DataFrame(prods), use_container_width=True)
