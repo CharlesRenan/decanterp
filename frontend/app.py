@@ -27,7 +27,7 @@ def apply_custom_style():
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
         
-        /* Fundo Principal */
+        /* Fundo Principal Matte Black */
         .stApp { background-color: #0E0E0E; }
         
         /* Sidebar */
@@ -36,64 +36,53 @@ def apply_custom_style():
             border-right: 1px solid #262626;
         }
 
-        /* TEXTOS: BRANCO E MAIORES */
+        /* TEXTOS BRANCOS */
         h1, h2, h3, h4, h5, h6, strong { color: #FFFFFF !important; }
-        p, div, label, span { color: #E0E0E0; } /* Cinza bem claro */
+        p, div, label, span { color: #E0E0E0; }
         
         .big-font { 
             font-size: 32px !important; 
             font-weight: 800 !important; 
             color: #FFFFFF !important; 
-            margin-top: 15px; 
-            margin-bottom: 25px;
-            letter-spacing: -0.5px;
+            margin-top: 15px; margin-bottom: 25px;
         }
 
-        /* --- MENU LATERAL (APROVADO) --- */
-        .nav-link-selected {
-            background-color: #EC4899 !important;
-            background-image: linear-gradient(90deg, #A855F7 0%, #EC4899 100%) !important;
-            color: #FFFFFF !important;
-            font-weight: 700 !important;
-            border-radius: 10px !important;
-        }
-
-        /* --- CARDS COM EFEITO GLASS (NOVIDADE!) --- */
+        /* --- CARDS GLASSMORPHISM (VISÃO GERAL) --- */
         .glass-card {
-            background: rgba(30, 30, 30, 0.6); /* Fundo escuro transparente */
-            backdrop-filter: blur(12px);       /* Desfoque do fundo */
+            background: rgba(30, 30, 30, 0.6);
+            backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08); /* Borda de vidro */
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 20px;
             padding: 25px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
             margin-bottom: 20px;
         }
         
-        .card-title { font-size: 14px; font-weight: 600; color: #D4D4D4; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .card-value { font-size: 36px; font-weight: 800; color: #FFFFFF; margin-top: 0px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .card-title { font-size: 13px; font-weight: 600; color: #D4D4D4; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+        .card-value { font-size: 38px; font-weight: 800; color: #FFFFFF; margin-top: 0px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
         .card-sub { font-size: 13px; color: #A3A3A3; margin-top: 5px; }
-
-        /* DETALHE COLORIDO NOS CARDS */
         .accent-line { height: 4px; width: 40px; border-radius: 2px; margin-bottom: 15px; }
+        
+        /* Cores dos Accent Lines */
         .bg-purple { background: linear-gradient(90deg, #C084FC, #E879F9); }
         .bg-blue { background: linear-gradient(90deg, #60A5FA, #3B82F6); }
         .bg-green { background: linear-gradient(90deg, #4ADE80, #22C55E); }
 
-        /* CONTAINERS GERAIS */
+        /* CONTAINERS PADRÃO */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #1C1C1C;
             border: 1px solid #2A2A2A;
             border-radius: 20px; padding: 25px;
         }
 
-        /* INPUTS */
+        /* INPUTS ESCUROS */
         div[data-testid="stForm"] input, div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input, div[data-testid="stSelectbox"] > div > div { 
             background-color: #262626 !important; 
             border: 1px solid #404040 !important; 
             color: #FFFFFF !important; 
             border-radius: 12px !important;
-            min-height: 45px; /* Inputs mais altos */
+            min-height: 45px;
         }
 
         /* BOTÕES (GRADIENTE ROXO/ROSA) */
@@ -113,7 +102,6 @@ def apply_custom_style():
             background: #262626 !important; border: 1px solid #EF4444 !important; color: #EF4444 !important; 
         }
         
-        /* TABELAS */
         .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #333; }
         .sales-val { font-size: 16px; font-weight: 700; color: #E879F9; }
     </style>
@@ -129,7 +117,6 @@ def get_data(endpoint):
         return [] 
     except: return [] 
 
-# Função atualizada para usar o estilo Glass
 def card_html(titulo, valor, subtexto, cor="bg-purple"): 
     st.markdown(f"""
     <div class='glass-card'>
@@ -178,18 +165,38 @@ def sistema_erp():
         
         menu = [{"l": "Dashboard", "i": "grid-fill", "id": "dash"}, {"l": "PDV (Caixa)", "i": "cart-fill", "id": "pdv"}, {"l": "Produtos", "i": "box-seam-fill", "id": "prod"}, {"l": "Clientes", "i": "people-fill", "id": "cli"}, {"l": "Financeiro", "i": "wallet-fill", "id": "fin"}, {"l": "Relatórios", "i": "bar-chart-fill", "id": "rel"}, {"l": "CRM", "i": "heart-fill", "id": "crm"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Compras", "i": "bag-fill", "id": "comp"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Vendas Adm", "i": "graph-up", "id": "vend"}, {"l": "Config", "i": "sliders", "id": "cfg"}]
         
-        sel = option_menu(None, [x["l"] for x in menu], icons=[x["i"] for x in menu], default_index=0, 
+        # --- CORREÇÃO DA SIDEBAR (FORÇANDO O ESTILO AQUI) ---
+        sel = option_menu(
+            menu_title=None,
+            options=[x["l"] for x in menu],
+            icons=[x["i"] for x in menu],
+            default_index=0,
             styles={
                 "container": {"padding": "0!important", "background-color": "transparent"},
                 "icon": {"color": "#FFFFFF", "font-size": "16px"}, 
-                "nav-link": {"font-family":"Inter", "font-size":"16px", "text-align": "left", "margin":"6px", "color": "#FFFFFF", "--hover-color": "#262626"},
-            })
+                "nav-link": {
+                    "font-family": "Inter", 
+                    "font-size": "16px", 
+                    "text-align": "left", 
+                    "margin": "6px", 
+                    "color": "#FFFFFF",
+                    "--hover-color": "#262626"
+                },
+                # FORÇANDO O GRADIENTE ROXO/ROSA AQUI DENTRO
+                "nav-link-selected": {
+                    "background-image": "linear-gradient(90deg, #A855F7 0%, #EC4899 100%)",
+                    "color": "#FFFFFF",
+                    "font-weight": "700",
+                    "border-radius": "10px"
+                }
+            }
+        )
         page_id = next(x["id"] for x in menu if x["l"] == sel)
         
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("SAIR DO SISTEMA", use_container_width=True): st.session_state['logado'] = False; st.rerun()
 
-    # --- DASHBOARD COM CARDS GLASS ---
+    # --- DASHBOARD (AGORA COM CONTEÚDO) ---
     if page_id == "dash":
         header("Visão Geral")
         d = get_data("financeiro/dashboard"); vendas = get_data("vendas"); clientes = get_data("clientes"); prods = get_data("produtos")
@@ -226,7 +233,7 @@ def sistema_erp():
                     rows_html += get_sales_row_html(cli['nome'], "Venda Confirmada", v['valor_total'])
                 st.markdown(f"<div style='height: 350px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
 
-    # --- PDV (CAIXA) ---
+    # --- PDV (RESTABELECIDO) ---
     elif page_id == "pdv":
         header("PDV - Frente de Caixa")
         clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
@@ -271,7 +278,7 @@ def sistema_erp():
                         else: st.error("Selecione um cliente!")
                 else: st.info("Caixa Livre")
 
-    # --- ABAS SECUNDÁRIAS ---
+    # --- TODAS AS OUTRAS ABAS (RESTABELECIDAS) ---
     elif page_id == "cli":
         header("Clientes")
         c1, c2 = st.columns([1, 1.5])
