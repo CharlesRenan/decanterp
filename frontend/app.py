@@ -47,15 +47,16 @@ def apply_custom_style():
             margin-top: 15px; margin-bottom: 25px;
         }
 
-        /* --- CARDS GLASSMORPHISM (VISÃO GERAL) --- */
+        /* --- CARDS GLASSMORPHISM (CORRIGIDO PARA APARECER MAIS) --- */
         .glass-card {
-            background: rgba(30, 30, 30, 0.6);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            /* Fundo branco com baixíssima opacidade cria o efeito de "vidro sujo" visível no escuro */
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1); /* Borda branca sutil */
             border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
             margin-bottom: 20px;
         }
         
@@ -69,7 +70,7 @@ def apply_custom_style():
         .bg-blue { background: linear-gradient(90deg, #60A5FA, #3B82F6); }
         .bg-green { background: linear-gradient(90deg, #4ADE80, #22C55E); }
 
-        /* CONTAINERS PADRÃO */
+        /* CONTAINERS PADRÃO (Para gráficos e tabelas) */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background-color: #1C1C1C;
             border: 1px solid #2A2A2A;
@@ -104,6 +105,15 @@ def apply_custom_style():
         
         .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #333; }
         .sales-val { font-size: 16px; font-weight: 700; color: #E879F9; }
+        
+        /* CORREÇÃO DO MENU LATERAL */
+        .nav-link-selected {
+            background-color: transparent !important; /* Remove fundo sólido padrão se houver */
+            background-image: linear-gradient(90deg, #A855F7 0%, #EC4899 100%) !important;
+            color: #FFFFFF !important;
+            font-weight: 700 !important;
+            border-radius: 10px !important;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -165,7 +175,6 @@ def sistema_erp():
         
         menu = [{"l": "Dashboard", "i": "grid-fill", "id": "dash"}, {"l": "PDV (Caixa)", "i": "cart-fill", "id": "pdv"}, {"l": "Produtos", "i": "box-seam-fill", "id": "prod"}, {"l": "Clientes", "i": "people-fill", "id": "cli"}, {"l": "Financeiro", "i": "wallet-fill", "id": "fin"}, {"l": "Relatórios", "i": "bar-chart-fill", "id": "rel"}, {"l": "CRM", "i": "heart-fill", "id": "crm"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Compras", "i": "bag-fill", "id": "comp"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Vendas Adm", "i": "graph-up", "id": "vend"}, {"l": "Config", "i": "sliders", "id": "cfg"}]
         
-        # --- CORREÇÃO DA SIDEBAR (FORÇANDO O ESTILO AQUI) ---
         sel = option_menu(
             menu_title=None,
             options=[x["l"] for x in menu],
@@ -174,21 +183,7 @@ def sistema_erp():
             styles={
                 "container": {"padding": "0!important", "background-color": "transparent"},
                 "icon": {"color": "#FFFFFF", "font-size": "16px"}, 
-                "nav-link": {
-                    "font-family": "Inter", 
-                    "font-size": "16px", 
-                    "text-align": "left", 
-                    "margin": "6px", 
-                    "color": "#FFFFFF",
-                    "--hover-color": "#262626"
-                },
-                # FORÇANDO O GRADIENTE ROXO/ROSA AQUI DENTRO
-                "nav-link-selected": {
-                    "background-image": "linear-gradient(90deg, #A855F7 0%, #EC4899 100%)",
-                    "color": "#FFFFFF",
-                    "font-weight": "700",
-                    "border-radius": "10px"
-                }
+                "nav-link": {"font-family":"Inter", "font-size":"16px", "text-align": "left", "margin":"6px", "color": "#FFFFFF", "--hover-color": "#262626"},
             }
         )
         page_id = next(x["id"] for x in menu if x["l"] == sel)
@@ -196,7 +191,7 @@ def sistema_erp():
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("SAIR DO SISTEMA", use_container_width=True): st.session_state['logado'] = False; st.rerun()
 
-    # --- DASHBOARD (AGORA COM CONTEÚDO) ---
+    # --- DASHBOARD (AGORA COM 3 COLUNAS - METAS DE VOLTA) ---
     if page_id == "dash":
         header("Visão Geral")
         d = get_data("financeiro/dashboard"); vendas = get_data("vendas"); clientes = get_data("clientes"); prods = get_data("produtos")
@@ -209,7 +204,9 @@ def sistema_erp():
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        c_graf, c_vendas = st.columns([1.5, 1])
+        # RESTAURADO: COLUNA DE METAS (c_meta)
+        c_graf, c_vendas, c_meta = st.columns([1.5, 1, 0.8])
+        
         with c_graf:
             with st.container(border=True): 
                 st.markdown("#### Fluxo Financeiro")
@@ -220,7 +217,7 @@ def sistema_erp():
                     fig.update_traces(fill='tozeroy', line=dict(width=4))
                 else:
                     fig = px.line(pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor")
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#FFFFFF', 'size': 14}, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#333'), margin=dict(l=0, r=0, t=0, b=0), height=350, showlegend=True, legend=dict(orientation="h", y=1.1))
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#FFFFFF', 'size': 14}, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#333'), margin=dict(l=0, r=0, t=0, b=0), height=300, showlegend=True, legend=dict(orientation="h", y=1.1))
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
         with c_vendas:
@@ -230,10 +227,31 @@ def sistema_erp():
                 map_clientes = {c['id']: c for c in clientes}
                 for v in vendas[:5]:
                     cli = map_clientes.get(v['cliente_id'], {'nome': 'Cliente', 'email': '-'})
-                    rows_html += get_sales_row_html(cli['nome'], "Venda Confirmada", v['valor_total'])
-                st.markdown(f"<div style='height: 350px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
+                    rows_html += get_sales_row_html(cli['nome'], cli['email'], v['valor_total'])
+                st.markdown(f"<div style='height: 300px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
 
-    # --- PDV (RESTABELECIDO) ---
+        with c_meta:
+            with st.container(border=True):
+                st.markdown("#### Meta")
+                receita_atual = d.get('receita', 0)
+                fig_gauge = go.Figure(go.Indicator(
+                    mode = "gauge+number",
+                    value = receita_atual,
+                    domain = {'x': [0, 1], 'y': [0, 1]},
+                    title = {'text': "Alvo R$ 10k", 'font': {'size': 14, 'color': "#D4D4D4"}},
+                    gauge = {
+                        'axis': {'range': [None, 10000], 'tickwidth': 1, 'tickcolor': "#333"},
+                        'bar': {'color': "#EC4899"}, # Rosa Neon
+                        'bgcolor': "#262626",
+                        'borderwidth': 0,
+                        'bordercolor': "#333",
+                        'steps': [{'range': [0, 10000], 'color': "#262626"}]
+                    }
+                ))
+                fig_gauge.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': "#FFFFFF", 'family': 'Inter'}, margin=dict(t=40,b=20,l=20,r=20), height=280)
+                st.plotly_chart(fig_gauge, use_container_width=True)
+
+    # --- PDV ---
     elif page_id == "pdv":
         header("PDV - Frente de Caixa")
         clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
@@ -278,7 +296,7 @@ def sistema_erp():
                         else: st.error("Selecione um cliente!")
                 else: st.info("Caixa Livre")
 
-    # --- TODAS AS OUTRAS ABAS (RESTABELECIDAS) ---
+    # --- ABAS SECUNDÁRIAS ---
     elif page_id == "cli":
         header("Clientes")
         c1, c2 = st.columns([1, 1.5])
