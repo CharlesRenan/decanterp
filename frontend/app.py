@@ -19,108 +19,109 @@ if 'usuario' not in st.session_state: st.session_state['usuario'] = ""
 if 'cargo' not in st.session_state: st.session_state['cargo'] = ""
 
 def render_logo_svg(width="50px", color="#E879F9"):
-    # Logo agora em tom Roxo/Rosa para combinar com a ref
     return f'<svg width="{width}" height="{width}" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 20 V80 C30 90 40 95 50 85 L80 50 C90 40 80 20 60 20 Z" stroke="{color}" stroke-width="8" fill="none"/><path d="M30 50 L60 20" stroke="{color}" stroke-width="8" stroke-linecap="round"/><circle cx="35" cy="85" r="5" fill="{color}"/></svg>'
 
 def apply_custom_style():
     st.markdown("""
     <style>
         /* FONTE */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; font-size: 16px; } /* Aumento da fonte base */
         
-        /* --- TEMA MATTE BLACK --- */
+        /* --- TEMA MATTE BLACK GLASS --- */
         
-        /* Fundo Principal (Preto Fosco Profundo) */
+        /* Fundo Principal */
         .stApp { background-color: #0E0E0E; }
         
-        /* Sidebar (Um pouco mais clara que o fundo) */
+        /* Sidebar */
         div[data-testid="stSidebar"] { 
             background-color: #141414; 
             border-right: 1px solid #262626;
         }
 
-        /* Títulos */
-        h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; font-weight: 600 !important; }
-        p, div, label, span { color: #A0A0A0; }
+        /* Títulos e Textos (AJUSTE 1 & 4: Mais Brancos e Maiores) */
+        h1, h2, h3, h4, h5, h6, strong { color: #FFFFFF !important; font-weight: 700 !important; }
+        p, div, label, span, .stMultiSelect div, .stSelectbox div { color: #E0E0E0 !important; } /* Cinza claríssimo */
         
         .big-font { 
-            font-size: 24px !important; 
-            font-weight: 600 !important; 
+            font-size: 32px !important; /* Aumentado de 24px */
+            font-weight: 800 !important; 
             color: #FFFFFF !important; 
-            margin-top: 15px !important; 
-            margin-bottom: 25px !important; 
+            margin-top: 20px !important; 
+            margin-bottom: 30px !important;
+            letter-spacing: -0.5px;
         }
 
-        /* --- CARDS (ESTILO ELEMENTOR) --- */
+        /* --- CONTAINERS PADRÃO --- */
         div[data-testid="stVerticalBlockBorderWrapper"] {
-            background-color: #1C1C1C; /* Cinza Card */
-            border: none; /* Sem borda, visual limpo */
-            border-radius: 20px; /* Borda bem redonda */
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); /* Sombra difusa */
+            background-color: #1C1C1C;
+            border: none;
+            border-radius: 20px;
+            padding: 30px; /* Mais espaçamento */
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
         }
 
-        /* KPI Cards (Topo) */
+        /* --- KPI CARDS (AJUSTE 3: EFEITO GLASS) --- */
         .card-container {
-            background-color: #1C1C1C;
+            background-color: rgba(28, 28, 28, 0.6); /* Fundo semi-transparente */
+            backdrop-filter: blur(12px); /* Efeito de vidro fosco */
             border-radius: 20px;
-            padding: 20px;
-            border: 1px solid transparent; /* Sem borda visível */
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.05); /* Borda sutil de vidro */
             position: relative;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
         
-        /* Detalhe colorido sutil no topo do card */
-        .card-accent {
-            width: 30px; height: 4px; border-radius: 2px; margin-bottom: 10px;
-        }
+        /* Detalhe colorido */
+        .card-accent { width: 35px; height: 5px; border-radius: 3px; margin-bottom: 15px; }
         .acc-purple { background: linear-gradient(90deg, #C084FC, #E879F9); }
         .acc-blue { background: linear-gradient(90deg, #60A5FA, #3B82F6); }
         .acc-green { background: linear-gradient(90deg, #4ADE80, #22C55E); }
         
-        .card-title { font-size: 12px; font-weight: 500; color: #737373; margin-bottom: 5px; }
-        .card-value { font-size: 26px; font-weight: 700; color: #FFFFFF; margin-top: 0px; }
-        .card-sub { font-size: 11px; color: #525252; margin-top: 5px; }
+        /* AJUSTE 4: Fontes dos Cards Maiores */
+        .card-title { font-size: 14px; font-weight: 600; color: #D4D4D4; margin-bottom: 8px; letter-spacing: 0.5px; }
+        .card-value { font-size: 38px; font-weight: 800; color: #FFFFFF; margin-top: 0px; }
+        .card-sub { font-size: 13px; color: #A3A3A3; margin-top: 8px; }
 
-        /* --- INPUTS & FORMS (MODERNOS) --- */
+        /* --- INPUTS & FORMS --- */
         div[data-testid="stForm"] input, div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input, div[data-testid="stDateInput"] input, div[data-testid="stSelectbox"] > div > div { 
             background-color: #262626 !important; 
-            border: none !important; 
-            color: #E5E5E5 !important; 
+            border: 1px solid #333 !important; 
+            color: #FFFFFF !important; 
             border-radius: 12px !important;
-            padding-left: 15px;
+            padding: 10px 15px; /* Inputs maiores */
+            font-size: 16px;
         }
         
-        /* BOTÕES (GRADIENTE ROXO/ROSA DA REFERÊNCIA) */
+        /* BOTÕES */
         div[data-testid="stFormSubmitButton"] button, div[data-testid="stButton"] button { 
             background: linear-gradient(90deg, #A855F7 0%, #EC4899 100%) !important; 
             color: white !important; 
-            border: none; border-radius: 12px; font-weight: 600;
-            padding: 0.6rem 1.2rem;
-            transition: transform 0.2s;
+            border: none; border-radius: 12px; font-weight: 700;
+            padding: 0.7rem 1.4rem; font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         div[data-testid="stFormSubmitButton"] button:hover, div[data-testid="stButton"] button:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+            transform: scale(1.03);
+            box-shadow: 0 0 25px rgba(236, 72, 153, 0.5);
         }
         
-        /* Botão Secundário (Lixeira) */
         div[data-testid="stHorizontalBlock"] button[kind="secondary"] { 
             background: #262626 !important; border: none !important; color: #EF4444 !important; 
         }
 
         /* --- TABELAS --- */
-        .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 15px 0; border-bottom: 1px solid #262626; }
-        .sales-row:last-child { border-bottom: none; }
-        .avatar-circle { width: 32px; height: 32px; border-radius: 50%; background: #262626; color: #E5E5E5; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; margin-right: 15px; }
-        .client-name { color: #FFFFFF !important; font-weight: 500; font-size: 13px; }
-        .client-sub { font-size: 11px; color: #737373 !important; }
+        .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid #262626; }
+        .avatar-circle { width: 38px; height: 38px; border-radius: 50%; background: #262626; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 15px; border: 1px solid #333; }
+        .client-name { color: #FFFFFF !important; font-weight: 600; font-size: 15px; }
+        .client-sub { font-size: 12px; color: #B0B0B0 !important; }
         
-        /* Menu Ativo */
+        /* AJUSTE 2: Menu Ativo Roxo */
         .nav-link-selected {
-            background: linear-gradient(90deg, rgba(168, 85, 247, 0.1), transparent) !important;
-            border-left: 3px solid #E879F9 !important;
+            background: linear-gradient(90deg, rgba(168, 85, 247, 0.15), transparent) !important;
+            border-left: 4px solid #A855F7 !important; /* Roxo vibrante do botão */
             color: #FFFFFF !important;
+            font-weight: 700 !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -141,7 +142,7 @@ def card_html(titulo, valor, subtexto, tipo="purple"):
 
 def get_sales_row_html(nome, email, valor):
     iniciais = nome[:2].upper() if nome else "??"
-    return f"<div class='sales-row'><div style='display:flex;align-items:center;'><div class='avatar-circle'>{iniciais}</div><div class='client-info'><div class='client-name'>{nome}</div><div class='client-sub'>{email}</div></div></div><div style='font-weight:600; color:#E879F9;'>R$ {valor:,.2f}</div></div>"
+    return f"<div class='sales-row'><div style='display:flex;align-items:center;'><div class='avatar-circle'>{iniciais}</div><div class='client-info'><div class='client-name'>{nome}</div><div class='client-sub'>{email}</div></div></div><div style='font-weight:700; color:#E879F9; font-size: 15px;'>R$ {valor:,.2f}</div></div>"
 
 def header(titulo): st.markdown(f"<div class='big-font'>{titulo}</div>", unsafe_allow_html=True)
 
@@ -150,15 +151,15 @@ def tela_login():
     with c2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         with st.container(border=True):
-            st.markdown(f"<div style='display:flex; flex-direction:column; align-items:center; gap: 15px; margin-bottom: 30px;'>{render_logo_svg(width='60px', color='#E879F9')}<h2 style='margin:0; color:white !important; font-size: 22px;'>Decant ERP</h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='display:flex; flex-direction:column; align-items:center; gap: 15px; margin-bottom: 30px;'>{render_logo_svg(width='70px', color='#E879F9')}<h2 style='margin:0; color:white !important; font-size: 26px; font-weight:800;'>Decant ERP</h2></div>", unsafe_allow_html=True)
             with st.form("login_form"):
                 u_input = st.text_input("Usuário", placeholder="admin")
                 p_input = st.text_input("Senha", type="password", placeholder="••••••")
                 st.markdown("<br>", unsafe_allow_html=True)
-                submit = st.form_submit_button("Entrar", use_container_width=True)
+                submit = st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True)
                 if submit:
                     sucesso = False; mensagem_erro = ""
-                    with st.spinner("Conectando..."):
+                    with st.spinner("Autenticando..."):
                         for tentativa in range(1, 4):
                             try:
                                 res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""}, timeout=10)
@@ -173,21 +174,20 @@ def tela_login():
 
 def sistema_erp():
     with st.sidebar:
-        st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:30px; padding-left:15px; padding-top:20px;'>{render_logo_svg(width='26px', color='#E879F9')}<div style='font-family:Inter; font-weight:700; font-size:18px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:30px; padding-left:15px; padding-top:20px;'>{render_logo_svg(width='30px', color='#E879F9')}<div style='font-family:Inter; font-weight:800; font-size:22px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
         
-        # MENU COMPLETO
         menu = [{"l": "Dashboard", "i": "grid-fill", "id": "dash"}, {"l": "PDV (Caixa)", "i": "cart-fill", "id": "pdv"}, {"l": "Produtos", "i": "box-seam-fill", "id": "prod"}, {"l": "Clientes", "i": "people-fill", "id": "cli"}, {"l": "Financeiro", "i": "wallet-fill", "id": "fin"}, {"l": "Relatórios", "i": "bar-chart-fill", "id": "rel"}, {"l": "CRM", "i": "heart-fill", "id": "crm"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Compras", "i": "bag-fill", "id": "comp"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Vendas Adm", "i": "graph-up", "id": "vend"}, {"l": "Config", "i": "sliders", "id": "cfg"}]
         
         sel = option_menu(None, [x["l"] for x in menu], icons=[x["i"] for x in menu], default_index=0, 
             styles={
                 "container": {"padding": "0!important", "background-color": "transparent"},
-                "icon": {"color": "#737373", "font-size": "13px"}, 
-                "nav-link": {"font-family":"Inter", "font-weight":"500", "font-size": "13px", "text-align": "left", "margin":"2px", "--hover-color": "#1C1C1C", "color": "#A0A0A0"},
+                "icon": {"color": "#A0A0A0", "font-size": "14px"}, 
+                "nav-link": {"font-family":"Inter", "font-weight":"600", "font-size": "14px", "text-align": "left", "margin":"4px", "--hover-color": "#1C1C1C", "color": "#C0C0C0"},
             })
         page_id = next(x["id"] for x in menu if x["l"] == sel)
         
-        st.markdown("<div style='margin-top: auto; padding: 20px; color: #404040; font-size: 10px; text-align: center;'>v6.0 Matte</div>", unsafe_allow_html=True)
-        if st.button("Sair", use_container_width=True): st.session_state['logado'] = False; st.rerun()
+        st.markdown("<div style='margin-top: auto; padding: 20px; color: #52525B; font-size: 11px; text-align: center; font-weight:600;'>v7.0 Matte Glass</div>", unsafe_allow_html=True)
+        if st.button("SAIR", use_container_width=True): st.session_state['logado'] = False; st.rerun()
 
     if page_id == "dash":
         header("Dashboard")
@@ -200,7 +200,6 @@ def sistema_erp():
         
         st.markdown("<br>", unsafe_allow_html=True)
         
-        # GRÁFICOS ESTILO ELEMENTOR (Curvas e Cores Neon)
         c_graf, c_vendas = st.columns([1.5, 1])
         with c_graf:
             with st.container(border=True): 
@@ -209,31 +208,29 @@ def sistema_erp():
                 if dados:
                     df_g = pd.DataFrame(dados)
                     fig = px.line(df_g, x="Mês", y="Valor", color="Tipo", line_shape='spline', render_mode='svg', color_discrete_map={'Entradas': '#E879F9', 'Saídas': '#60A5FA'})
-                    # Preenchimento Gradiente (Simulado)
-                    fig.update_traces(fill='tozeroy', line=dict(width=3))
+                    fig.update_traces(fill='tozeroy', line=dict(width=4))
                 else:
                     fig = px.line(pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor")
-                
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#737373', 'family': 'Inter'}, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#262626'), margin=dict(l=0, r=0, t=0, b=0), height=300, showlegend=True, legend=dict(orientation="h", y=1.1))
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#A0A0A0', 'family': 'Inter', 'size': 14}, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#262626'), margin=dict(l=0, r=0, t=0, b=0), height=350, showlegend=True, legend=dict(orientation="h", y=1.1))
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
         with c_vendas:
             with st.container(border=True):
-                st.markdown("#### Últimas Atividades")
+                st.markdown("#### Últimas Vendas")
                 rows_html = ""
                 map_clientes = {c['id']: c for c in clientes}
                 for v in vendas[:5]:
                     cli = map_clientes.get(v['cliente_id'], {'nome': 'Cliente', 'email': '-'})
-                    rows_html += get_sales_row_html(cli['nome'], "Venda Confirmada", v['valor_total'])
-                st.markdown(f"<div style='height: 300px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
+                    rows_html += get_sales_row_html(cli['nome'], "Confirmado", v['valor_total'])
+                st.markdown(f"<div style='height: 350px; overflow-y: auto;'>{rows_html}</div>", unsafe_allow_html=True)
 
     elif page_id == "pdv":
-        header("PDV")
+        header("PDV - Frente de Caixa")
         clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
         with c1:
             with st.container(border=True):
-                st.markdown("#### Seleção")
+                st.markdown("#### Seleção de Itens")
                 lista_clientes = [c['nome'] for c in clis] if clis else []
                 cli_sel = st.selectbox("Cliente", lista_clientes) if lista_clientes else None
                 if not lista_clientes: st.warning("Cadastre clientes primeiro.")
@@ -271,7 +268,7 @@ def sistema_erp():
                         else: st.error("Selecione um cliente!")
                 else: st.info("Caixa Livre")
 
-    # --- ABAS SECUNDÁRIAS ---
+    # --- ABAS SECUNDÁRIAS (MANTIDAS FUNCIONAIS) ---
     elif page_id == "cli":
         header("Clientes")
         c1, c2 = st.columns([1, 1.5])
@@ -293,7 +290,7 @@ def sistema_erp():
         with t2: st.dataframe(pd.DataFrame(get_data("financeiro/lancamentos")), use_container_width=True)
 
     elif page_id == "crm":
-        header("CRM")
+        header("CRM & Fidelidade")
         st.info("Clientes inativos há mais de 25 dias.")
         ops = get_data("crm/oportunidades")
         if ops:
