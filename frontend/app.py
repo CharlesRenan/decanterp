@@ -19,94 +19,100 @@ if 'usuario' not in st.session_state: st.session_state['usuario'] = ""
 if 'cargo' not in st.session_state: st.session_state['cargo'] = ""
 
 def render_logo_svg(width="50px", color="#3B82F6"):
-    # Logo ajustado para fundo escuro (Sidebar)
     return f'<svg width="{width}" height="{width}" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 20 V80 C30 90 40 95 50 85 L80 50 C90 40 80 20 60 20 Z" stroke="{color}" stroke-width="8" fill="none"/><path d="M30 50 L60 20" stroke="{color}" stroke-width="8" stroke-linecap="round"/><circle cx="35" cy="85" r="5" fill="{color}"/></svg>'
 
 def apply_custom_style():
     st.markdown("""
     <style>
-        /* FONTE OUTFIT (MANTENDO A GEOMETRIA MODERNA) */
+        /* FONTE PREMIUM */
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        
         html, body, [class*="css"] { font-family: 'Outfit', sans-serif !important; }
         
-        /* --- TEMA CLEAN (BLUEBERRY STYLE) --- */
+        /* FUNDO GERAL (Cinza Carvão Premium) */
+        .stApp { background-color: #09090B; }
         
-        /* Fundo Principal (Cinza Gelo Claro) */
-        .stApp { background-color: #F3F4F6; }
-        
-        /* Sidebar (Azul Marinho Profundo) */
-        div[data-testid="stSidebar"] { background-color: #111827; }
-        
-        /* Textos Gerais (Escuros para contraste no fundo claro) */
-        h1, h2, h3, h4, h5, h6 { color: #1F2937 !important; font-weight: 700 !important; }
-        p, div, label, span { color: #4B5563; }
-        
-        /* Título da Página */
-        .big-font { 
-            font-size: 28px !important; 
-            font-weight: 700 !important; 
-            color: #111827 !important; 
-            margin-top: 10px !important; 
-            margin-bottom: 20px !important; 
+        /* SIDEBAR (Um tom mais claro que o fundo) */
+        div[data-testid="stSidebar"] { 
+            background-color: #121214; 
+            border-right: 1px solid #27272A;
         }
 
-        /* --- CARDS BRANCOS (SHADOW) --- */
-        div[data-testid="stVerticalBlockBorderWrapper"] {
-            background-color: #FFFFFF;
-            border: 1px solid #E5E7EB;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); /* Sombra suave */
+        /* TEXTOS */
+        h1, h2, h3, h4, h5, h6 { color: #F4F4F5 !important; font-weight: 600 !important; }
+        p, div, label, span { color: #A1A1AA; }
+        .big-font { 
+            font-size: 26px !important; 
+            font-weight: 700 !important; 
+            color: #FFFFFF !important; 
+            margin-top: 10px !important; 
+            margin-bottom: 25px !important; 
         }
-        
-        /* Cards KPI (Topo) */
-        .card-container {
-            background-color: #FFFFFF;
+
+        /* --- CARDS & CONTAINERS --- */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background-color: #18181B; /* Zinc-900 */
+            border: 1px solid #27272A; /* Borda sutil */
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-left: 5px solid #3B82F6; /* Detalhe colorido na esquerda */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
         }
-        .card-title { font-size: 12px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.5px; }
-        .card-value { font-size: 28px; font-weight: 700; color: #111827; margin-top: 5px; }
-        .card-sub { font-size: 12px; color: #10B981; font-weight: 500; margin-top: 5px; }
 
-        /* INPUTS (Estilo Clean) */
+        /* KPI Cards do Topo */
+        .card-container {
+            background-color: #18181B;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #27272A;
+            transition: transform 0.2s;
+        }
+        .card-container:hover {
+            border-color: #3F3F46;
+            transform: translateY(-2px);
+        }
+        
+        /* Barrinha colorida lateral no card */
+        .card-blue { border-left: 4px solid #3B82F6; }
+        .card-red { border-left: 4px solid #EF4444; }
+        .card-green { border-left: 4px solid #10B981; }
+        .card-dark { border-left: 4px solid #F59E0B; }
+
+        .card-title { font-size: 11px; font-weight: 600; color: #71717A; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .card-value { font-size: 28px; font-weight: 700; color: #FAFAFA; margin-top: 0px; }
+        .card-sub { font-size: 12px; color: #52525B; margin-top: 5px; }
+
+        /* --- INPUTS & FORMULÁRIOS --- */
         div[data-testid="stForm"] input, div[data-testid="stTextInput"] input, div[data-testid="stNumberInput"] input, div[data-testid="stDateInput"] input, div[data-testid="stSelectbox"] > div > div { 
-            background-color: #FFFFFF !important; 
-            border: 1px solid #D1D5DB !important; 
-            color: #1F2937 !important; 
+            background-color: #27272A !important; 
+            border: 1px solid #3F3F46 !important; 
+            color: white !important; 
             border-radius: 8px !important;
         }
         
-        /* BOTÕES (Azul Vibrante) */
+        /* BOTÕES */
         div[data-testid="stFormSubmitButton"] button, div[data-testid="stButton"] button { 
-            background-color: #3B82F6 !important;
+            background-color: #2563EB !important;
             color: white !important; 
             border: none; border-radius: 8px; font-weight: 600;
-            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
             transition: all 0.2s;
         }
         div[data-testid="stFormSubmitButton"] button:hover, div[data-testid="stButton"] button:hover {
-            background-color: #2563EB !important;
-            transform: translateY(-1px);
+            background-color: #3B82F6 !important;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
         }
         
-        /* TABELAS E LISTAS */
-        .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F3F4F6; }
-        .avatar-circle { width: 36px; height: 36px; border-radius: 10px; background: #EEF2FF; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px; }
-        .client-name { color: #1F2937 !important; font-weight: 600; font-size: 14px; }
-        .client-sub { font-size: 11px; color: #6B7280 !important; }
-        .sales-val { color: #1F2937 !important; font-weight: 700; font-size: 14px; }
-        
-        /* Botão Lixeira */
+        /* Botão Secundário (Lixeira/Cancelar) */
         div[data-testid="stHorizontalBlock"] button[kind="secondary"] { 
-            border: 1px solid #EF4444 !important; background: #FEF2F2 !important; color: #EF4444 !important; 
+            border: 1px solid #EF4444 !important; background: rgba(239, 68, 68, 0.1) !important; color: #EF4444 !important; 
         }
 
-        /* Menu Sidebar (Ajuste de cor) */
-        .nav-link { color: #9CA3AF !important; }
-        .nav-link-selected { background-color: #374151 !important; color: white !important; }
+        /* --- TABELAS --- */
+        .sales-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #27272A; }
+        .avatar-circle { width: 36px; height: 36px; border-radius: 10px; background: #27272A; color: #A1A1AA; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-right: 12px; }
+        .client-name { color: #F4F4F5 !important; font-weight: 500; font-size: 14px; }
+        .client-sub { font-size: 11px; color: #71717A !important; }
+        .sales-val { color: #FFFFFF !important; font-weight: 700; font-size: 14px; }
+        
     </style>
     """, unsafe_allow_html=True)
 
@@ -120,8 +126,8 @@ def get_data(endpoint):
         return [] 
     except: return [] 
 
-def card_html(titulo, valor, subtexto): 
-    st.markdown(f"<div class='card-container'><div class='card-title'>{titulo}</div><div class='card-value'>{valor}</div><div class='card-sub'>{subtexto}</div></div>", unsafe_allow_html=True)
+def card_html(titulo, valor, subtexto, cor="card-dark"): 
+    st.markdown(f"<div class='card-container {cor}'><div class='card-title'>{titulo}</div><div class='card-value'>{valor}</div><div class='card-sub'>{subtexto}</div></div>", unsafe_allow_html=True)
 
 def get_sales_row_html(nome, email, valor):
     iniciais = nome[:2].upper() if nome else "??"
@@ -133,17 +139,16 @@ def tela_login():
     c1, c2, c3 = st.columns([1, 1, 1])
     with c2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        # Login em Card Branco
         with st.container(border=True):
-            st.markdown(f"<div style='display:flex; flex-direction:column; align-items:center; gap: 10px; margin-bottom: 20px;'>{render_logo_svg(width='50px', color='#3B82F6')}<h2 style='margin:0;'>Decant ERP</h2><p style='font-size:12px;'>Bem-vindo de volta</p></div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='display:flex; flex-direction:column; align-items:center; gap: 10px; margin-bottom: 20px;'>{render_logo_svg(width='50px', color='#3B82F6')}<h2 style='margin:0; color:white !important;'>Decant ERP</h2><p style='font-size:12px; color:#52525B;'>Sistema de Gestão Integrada</p></div>", unsafe_allow_html=True)
             with st.form("login_form"):
                 u_input = st.text_input("Usuário", placeholder="admin")
                 p_input = st.text_input("Senha", type="password", placeholder="••••••")
                 st.markdown("<br>", unsafe_allow_html=True)
-                submit = st.form_submit_button("Entrar no Sistema", use_container_width=True)
+                submit = st.form_submit_button("Acessar Painel", use_container_width=True)
                 if submit:
                     sucesso = False; mensagem_erro = ""
-                    with st.spinner("Conectando..."):
+                    with st.spinner("Autenticando..."):
                         for tentativa in range(1, 4):
                             try:
                                 res = requests.post(f"{API_URL}/auth/login/", json={"username": u_input, "senha": p_input, "cargo": ""}, timeout=10)
@@ -151,47 +156,49 @@ def tela_login():
                                 else: mensagem_erro = "Dados incorretos."; break
                             except:
                                 if tentativa < 3: time.sleep(3)
-                                else: mensagem_erro = "Servidor Offline."
+                                else: mensagem_erro = "Sem conexão."
                     if sucesso:
                         data = res.json(); st.session_state['logado'] = True; st.session_state['usuario'] = data['usuario']; st.session_state['cargo'] = data['cargo']; st.rerun()
                     else: st.error(mensagem_erro)
 
 def sistema_erp():
     with st.sidebar:
-        st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:20px; padding-left:10px; padding-top:20px;'>{render_logo_svg(width='28px', color='#60A5FA')}<div style='font-family:Outfit; font-weight:700; font-size:20px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='display:flex; align-items:center; gap:12px; margin-bottom:30px; padding-left:10px; padding-top:20px;'>{render_logo_svg(width='28px', color='#3B82F6')}<div style='font-family:Outfit; font-weight:700; font-size:20px; color:white;'>Decant</div></div>", unsafe_allow_html=True)
         
-        # Menu Estilizado para Fundo Escuro
+        # MENU COMPLETO E PREMIUM
         menu = [{"l": "Dashboard", "i": "grid-fill", "id": "dash"}, {"l": "PDV (Caixa)", "i": "cart-fill", "id": "pdv"}, {"l": "Produtos", "i": "box-seam-fill", "id": "prod"}, {"l": "Clientes", "i": "people-fill", "id": "cli"}, {"l": "Financeiro", "i": "wallet-fill", "id": "fin"}, {"l": "Relatórios", "i": "bar-chart-fill", "id": "rel"}, {"l": "CRM", "i": "heart-fill", "id": "crm"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Compras", "i": "bag-fill", "id": "comp"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Vendas Adm", "i": "graph-up", "id": "vend"}, {"l": "Config", "i": "sliders", "id": "cfg"}]
         
         sel = option_menu(None, [x["l"] for x in menu], icons=[x["i"] for x in menu], default_index=0, 
             styles={
                 "container": {"padding": "0!important", "background-color": "transparent"},
-                "icon": {"color": "#9CA3AF", "font-size": "14px"}, 
-                "nav-link": {"font-family":"Outfit", "font-weight":"500", "font-size": "13px", "text-align": "left", "margin":"2px", "--hover-color": "#1F2937", "color": "#D1D5DB"},
-                "nav-link-selected": {"background-color": "#3B82F6", "color": "#FFFFFF", "font-weight": "600", "border-radius": "8px"}
+                "icon": {"color": "#71717A", "font-size": "14px"}, 
+                "nav-link": {"font-family":"Outfit", "font-weight":"500", "font-size": "13px", "text-align": "left", "margin":"2px", "--hover-color": "#27272A", "color": "#A1A1AA"},
+                "nav-link-selected": {"background-color": "#27272A", "color": "#FFFFFF", "font-weight": "600", "border-left": "3px solid #3B82F6"}
             })
         page_id = next(x["id"] for x in menu if x["l"] == sel)
         
-        st.markdown("<div style='margin-top: auto; padding: 20px; color: #6B7280; font-size: 10px; text-align: center;'>v5.0 Clean</div>", unsafe_allow_html=True)
+        st.markdown("<div style='margin-top: auto; padding: 20px; color: #52525B; font-size: 10px; text-align: center;'>v5.1 Dark Premium</div>", unsafe_allow_html=True)
         if st.button("Sair", use_container_width=True): st.session_state['logado'] = False; st.rerun()
 
-    # --- LÓGICA DAS PÁGINAS (MANTIDA 100%) ---
     if page_id == "dash":
         header("Visão Geral")
         d = get_data("financeiro/dashboard"); vendas = get_data("vendas"); clientes = get_data("clientes"); prods = get_data("produtos")
         c1, c2, c3, c4 = st.columns(4)
-        with c1: card_html("Receita Total", f"R$ {d.get('receita', 0):,.2f}", "↗ +12% este mês")
-        with c2: card_html("Despesas", f"R$ {d.get('despesas', 0):,.2f}", "↘ Dentro da meta")
-        with c3: card_html("Lucro Líquido", f"R$ {d.get('lucro', 0):,.2f}", f"Margem: {d.get('margem', 0):.1f}%")
-        with c4: card_html("Status", "Online", "Servidor OK")
+        with c1: card_html("Receita Total", f"R$ {d.get('receita', 0):,.2f}", "↗ +12% este mês", "card-blue")
+        with c2: card_html("Despesas", f"R$ {d.get('despesas', 0):,.2f}", "↘ Dentro da meta", "card-red")
+        with c3: card_html("Lucro Líquido", f"R$ {d.get('lucro', 0):,.2f}", f"Margem: {d.get('margem', 0):.1f}%", "card-green")
+        with c4: card_html("Status", "Online", "Servidor OK", "card-dark")
+        
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        # GRÁFICOS
         c_graf, c_vendas, c_meta = st.columns([1.2, 1, 0.8])
         with c_graf:
             with st.container(border=True): 
                 st.markdown("##### Fluxo de Caixa")
                 dados = d.get('grafico', [])
                 fig = px.area(pd.DataFrame(dados) if dados else pd.DataFrame([{"Mês":"Jan","Valor":0,"Tipo":"Entradas"}]), x="Mês", y="Valor", color="Tipo", line_shape='spline', color_discrete_map={'Entradas': '#10B981', 'Saídas': '#3B82F6'})
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#6B7280', 'family': 'Outfit'}, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#F3F4F6'), margin=dict(l=0, r=0, t=0, b=0), height=250, showlegend=False)
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#A1A1AA', 'family': 'Outfit'}, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#27272A'), margin=dict(l=0, r=0, t=0, b=0), height=250, showlegend=False)
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
         with c_vendas:
             with st.container(border=True):
@@ -206,8 +213,8 @@ def sistema_erp():
             with st.container(border=True):
                 st.markdown("##### Meta Mensal")
                 receita_atual = d.get('receita', 0)
-                fig_gauge = go.Figure(go.Indicator(mode = "gauge+number", value = receita_atual, domain = {'x': [0, 1], 'y': [0, 1]}, gauge = {'axis': {'range': [None, 10000], 'tickwidth': 1, 'tickcolor': "#333"}, 'bar': {'color': "#3B82F6"}, 'bgcolor': "#EFF6FF", 'borderwidth': 0, 'bordercolor': "#333", 'steps': [{'range': [0, 10000], 'color': "#F3F4F6"}]}))
-                fig_gauge.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': "#1F2937", 'family': 'Outfit'}, margin=dict(t=20,b=20,l=20,r=20), height=230)
+                fig_gauge = go.Figure(go.Indicator(mode = "gauge+number", value = receita_atual, domain = {'x': [0, 1], 'y': [0, 1]}, gauge = {'axis': {'range': [None, 10000], 'tickwidth': 1, 'tickcolor': "#333"}, 'bar': {'color': "#3B82F6"}, 'bgcolor': "#27272A", 'borderwidth': 0, 'bordercolor': "#333", 'steps': [{'range': [0, 10000], 'color': "#27272A"}]}))
+                fig_gauge.update_layout(paper_bgcolor='rgba(0,0,0,0)', font={'color': "#F4F4F5", 'family': 'Outfit'}, margin=dict(t=20,b=20,l=20,r=20), height=230)
                 st.plotly_chart(fig_gauge, use_container_width=True)
 
     elif page_id == "pdv":
@@ -349,7 +356,7 @@ def sistema_erp():
             if st.button("Gerar DRE"):
                 dre = requests.get(f"{API_URL}/relatorios/dre?inicio={ini}&fim={fim}").json()
                 fig = go.Figure(go.Waterfall(x = ["Receita", "Impostos", "Liq", "Custos", "Margem", "Despesas", "Lucro"], y = [dre['receita_bruta'], -dre['impostos'], dre['receita_liquida'], -dre['custos_variaveis'], dre['margem_contribuicao'], -dre['despesas_fixas'], dre['lucro_liquido']], connector = {"line":{"color":"#555"}}))
-                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#1F2937'})
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font={'color': '#F4F4F5'})
                 st.plotly_chart(fig, use_container_width=True)
         with t2:
             if st.button("📄 PDF Vendas"): 
