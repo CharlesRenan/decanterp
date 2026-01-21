@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, Depends
-from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime, extract
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session, relationship
 from pydantic import BaseModel
@@ -10,7 +10,13 @@ from passlib.context import CryptContext
 from fastapi.middleware.cors import CORSMiddleware
 import io
 from starlette.responses import StreamingResponse
+
+# --- IMPORTAÇÕES PARA PDF AVANÇADO (RELATÓRIOS) ---
 from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 # --- CONFIGURAÇÃO BANCO E APP ---
 DATABASE_URL = "sqlite:///./decant_erp.db"
@@ -62,7 +68,7 @@ class Produto(Base):
     unidade = Column(String)
     estoque_atual = Column(Float, default=0.0)
     custo = Column(Float, default=0.0)
-    localizacao = Column(String, default="Geral") # CAMPO NOVO
+    localizacao = Column(String, default="Geral")
 
 class Formula(Base):
     __tablename__ = "formulas"
@@ -99,6 +105,7 @@ class LancamentoFinanceiro(Base):
     valor = Column(Float)
     data_vencimento = Column(String)
     pago = Column(Boolean, default=False)
+    data_lancamento = Column(Date, default=date.today) # Novo campo útil para filtros
 
 class Compra(Base):
     __tablename__ = "compras"
@@ -229,10 +236,8 @@ def registrar_kardex(db: Session, prod_id: int, tipo: str, qtd: float):
 
 @app.post("/auth/login/")
 def login(u: UsuarioBase, db: Session = Depends(get_db)):
-    # --- CHAVE MESTRA: ADMIN ENTRA SEMPRE ---
     if u.username == "admin" and u.senha == "123":
         return {"msg": "OK", "cargo": "Diretor", "usuario": "admin"}
-    # ----------------------------------------
     user = db.query(Usuario).filter(Usuario.username == u.username).first()
     if not user or not verificar_senha(u.senha, user.senha_hash):
         raise HTTPException(401, "Credenciais inválidas")
@@ -322,6 +327,136 @@ def dashboard(db: Session = Depends(get_db)):
     ]
     return {"receita": receita, "despesas": despesas, "lucro": receita - despesas, "margem": ((receita-despesas)/receita*100) if receita > 0 else 0, "grafico": grafico}
 
+# --- NOVO: Endpoint DRE (Demonstração do Resultado do Exercício) ---
+@app.get("/relatorios/dre")
+def relatorio_dre(inicio: str, fim: str, db: Session = Depends(get_db)):
+    # Converte strings de data para objetos date
+    dt_ini = datetime.strptime(inicio, "%Y-%m-%d").date()
+    dt_fim = datetime.strptime(fim, "%Y-%m-%d").date()
+    
+    # Filtra lançamentos financeiros pela data (assumindo vencimento como data base simplificada)
+    # Em um sistema real, usaria data_competencia
+    lancamentos = db.query(LancamentoFinanceiro).all() 
+    
+    # Filtra na lista (python) por segurança de formato de data
+    filtrados = [l for l in lancamentos if dt_ini <= datetime.strptime(l.data_vencimento, "%Y-%m-%d").date() <= dt_fim]
+    
+    receita_bruta = sum(l.valor for l in filtrados if l.categoria == 'Vendas')
+    impostos = sum(l.valor for l in filtrados if l.categoria == 'Impostos')
+    receita_liquida = receita_bruta - impostos
+    
+    custos_variaveis = sum(l.valor for l in filtrados if l.categoria in ['Matéria Prima', 'Despesa Variável'])
+    margem_contribuicao = receita_liquida - custos_variaveis
+    
+    despesas_fixas = sum(l.valor for l in filtrados if l.categoria == 'Custos Fixos')
+    lucro_liquido = margem_contribuicao - despesas_fixas
+    
+    return {
+        "receita_bruta": receita_bruta,
+        "impostos": impostos,
+        "receita_liquida": receita_liquida,
+        "custos_variaveis": custos_variaveis,
+        "margem_contribuicao": margem_contribuicao,
+        "despesas_fixas": despesas_fixas,
+        "lucro_liquido": lucro_liquido
+    }
+
+# --- NOVO: Endpoint PDF de Vendas por Período ---
+@app.get("/relatorios/vendas_pdf")
+def relatorio_vendas_pdf(inicio: str, fim: str, db: Session = Depends(get_db)):
+    dt_ini = datetime.strptime(inicio, "%Y-%m-%d")
+    dt_fim = datetime.strptime(fim, "%Y-%m-%d")
+    
+    # Busca vendas no período
+    vendas = db.query(Venda).filter(Venda.data_venda >= dt_ini, Venda.data_venda <= dt_fim).all()
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Título
+    elements.append(Paragraph(f"Relatório de Vendas: {inicio} a {fim}", styles['Title']))
+    elements.append(Spacer(1, 12))
+    
+    # Tabela
+    data = [["ID", "Cliente", "Produto", "Qtd", "Valor (R$)"]] # Cabeçalho
+    total = 0
+    for v in vendas:
+        cli = db.query(Cliente).filter(Cliente.id == v.cliente_id).first()
+        prod = db.query(Produto).filter(Produto.id == v.produto_id).first()
+        data.append([
+            str(v.id),
+            cli.nome if cli else "Desconhecido",
+            prod.nome if prod else "?",
+            str(v.quantidade),
+            f"{v.valor_total:.2f}"
+        ])
+        total += v.valor_total
+    
+    data.append(["", "", "TOTAL:", "", f"{total:.2f}"])
+    
+    t = Table(data)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+    ]))
+    elements.append(t)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="application/pdf")
+
+# --- NOVO: Endpoint PDF Estoque Valorado ---
+@app.get("/relatorios/estoque_pdf")
+def relatorio_estoque_pdf(db: Session = Depends(get_db)):
+    prods = db.query(Produto).all()
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    elements.append(Paragraph("Relatório de Estoque Valorado", styles['Title']))
+    elements.append(Spacer(1, 12))
+    
+    data = [["Produto", "Local", "Qtd", "Custo", "Total"]]
+    total_geral = 0
+    for p in prods:
+        subtotal = p.estoque_atual * p.custo
+        total_geral += subtotal
+        data.append([
+            p.nome,
+            p.localizacao,
+            f"{p.estoque_atual:.2f}",
+            f"R$ {p.custo:.2f}",
+            f"R$ {subtotal:.2f}"
+        ])
+    
+    data.append(["", "", "", "TOTAL:", f"R$ {total_geral:.2f}"])
+    
+    t = Table(data)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+    ]))
+    elements.append(t)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type="application/pdf")
+
+# --- ENDPOINTS ANTIGOS MANTIDOS ---
 @app.post("/formulas/")
 def criar_formula(f: FormulaBase, db: Session = Depends(get_db)):
     nova = Formula(nome=f.nome, produto_final_id=f.produto_final_id)
