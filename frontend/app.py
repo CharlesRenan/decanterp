@@ -62,7 +62,6 @@ def apply_custom_style():
         div[data-testid="stHorizontalBlock"] button[kind="secondary"] { border: 1px solid #EF4444 !important; background-color: rgba(239, 68, 68, 0.1) !important; color: #EF4444 !important; }
         div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover { background-color: #EF4444 !important; color: white !important; }
         
-        /* Ajuste fino para o input de número na tabela ficar alinhado */
         div[data-testid="stNumberInput"] input { min-height: 30px; padding: 5px; font-size: 14px; }
     </style>
     """, unsafe_allow_html=True)
@@ -194,7 +193,6 @@ def sistema_erp():
     elif page_id == "pdv":
         header("Frente de Caixa (PDV)"); clis = get_data("clientes"); prods = get_data("produtos"); pas = [p for p in prods if p['tipo'] == 'Produto Acabado']
         c1, c2 = st.columns([1.5, 1])
-        
         with c1:
             st.markdown("##### 🛒 Adicionar Itens")
             lista_clientes = [c['nome'] for c in clis] if clis else []
@@ -205,7 +203,6 @@ def sistema_erp():
                 k1, k2 = st.columns([3, 1]); p = k1.selectbox("Produto", [x['nome'] for x in pas]) if pas else None; q = k2.number_input("Qtd", 1.0)
                 if st.button("Adicionar Item", use_container_width=True): 
                     obj = next(x for x in pas if x['nome']==p); pr = obj['custo']*2; 
-                    # AGORA SALVAMOS O PREÇO UNITÁRIO PARA PODER RECALCULAR DEPOIS
                     st.session_state['carrinho'].append({"id":obj['id'],"nome":obj['nome'],"qtd":q,"total":q*pr, "custo": obj['custo'], "preco_unitario": pr}); st.rerun()
         
         with c2:
@@ -213,20 +210,13 @@ def sistema_erp():
             if st.session_state['carrinho']:
                 with st.container(border=True):
                     for i, item in enumerate(st.session_state['carrinho']):
-                        # Layout da linha do carrinho: Nome | Quantidade (Editável) | Preço | Lixeira
                         col_nome, col_qtd, col_val, col_del = st.columns([3, 1.5, 1.5, 0.8])
                         col_nome.write(f"**{item['nome']}**")
-                        
-                        # --- AQUI ESTÁ A MÁGICA DA EDIÇÃO ---
                         nova_qtd = col_qtd.number_input("Qtd", min_value=1.0, value=float(item['qtd']), key=f"qtd_{i}", label_visibility="collapsed")
-                        
-                        # Se a quantidade mudar, recalcula tudo na hora
                         if nova_qtd != item['qtd']:
                             st.session_state['carrinho'][i]['qtd'] = nova_qtd
                             st.session_state['carrinho'][i]['total'] = nova_qtd * item['preco_unitario']
                             st.rerun()
-                        # ------------------------------------
-
                         col_val.write(f"R${item['total']:.0f}")
                         if col_del.button("🗑️", key=f"del_{i}"):
                             st.session_state['carrinho'].pop(i)
@@ -297,7 +287,69 @@ def sistema_erp():
                 if st.form_submit_button("Salvar"): requests.post(f"{API_URL}/produtos/", json={"nome":n,"tipo":t,"unidade":"Un","estoque_atual":e,"custo":c, "localizacao": loc}); st.success("Salvo!"); st.rerun()
 
     elif page_id == "fab": header("Chão de Fábrica"); st.info("Use o app para registrar produção."); st.dataframe(pd.DataFrame(get_data("producao/historico/")), use_container_width=True)
-    elif page_id == "rel": header("Relatórios"); st.dataframe(pd.DataFrame(get_data("relatorios/estoque/")['itens']), use_container_width=True)
+    
+    # --- ABA RELATÓRIOS TURBINADA (NOVO!) ---
+    elif page_id == "rel": 
+        header("Relatórios de Inteligência")
+        
+        # Filtro de Data Global para a aba
+        c1, c2 = st.columns(2)
+        ini = c1.date_input("Data Início", value=date.today().replace(day=1))
+        fim = c2.date_input("Data Fim", value=date.today())
+        
+        t1, t2, t3 = st.tabs(["📊 DRE Gerencial", "📄 Relatórios PDF", "📦 Estoque & Lotes"])
+        
+        # 1. DRE (Calculado na hora)
+        with t1:
+            if st.button("Gerar DRE"):
+                # Chama o backend para calcular
+                dre = requests.get(f"{API_URL}/relatorios/dre?inicio={ini}&fim={fim}").json()
+                
+                # Visualização em Cascata (Waterfall)
+                fig = go.Figure(go.Waterfall(
+                    name = "20", orientation = "v", measure = ["relative", "relative", "total", "relative", "total", "relative", "total"],
+                    x = ["Receita Bruta", "Impostos", "Receita Líquida", "Custos Variáveis", "Margem Contrib.", "Despesas Fixas", "Lucro Líquido"],
+                    textposition = "outside",
+                    text = [f"{dre['receita_bruta']}", f"-{dre['impostos']}", f"{dre['receita_liquida']}", f"-{dre['custos_variaveis']}", f"{dre['margem_contribuicao']}", f"-{dre['despesas_fixas']}", f"{dre['lucro_liquido']}"],
+                    y = [dre['receita_bruta'], -dre['impostos'], dre['receita_liquida'], -dre['custos_variaveis'], dre['margem_contribuicao'], -dre['despesas_fixas'], dre['lucro_liquido']],
+                    connector = {"line":{"color":"rgb(63, 63, 63)"}},
+                ))
+                fig.update_layout(title = "Demonstrativo de Resultado (DRE)", showlegend = False, paper_bgcolor='#1E293B', plot_bgcolor='#1E293B', font={'color': "white"})
+                st.plotly_chart(fig, use_container_width=True)
+                
+                # Tabela detalhada
+                st.markdown("### Detalhamento")
+                st.dataframe(pd.DataFrame([dre]).T.rename(columns={0: "Valor (R$)"}), use_container_width=True)
+
+        # 2. PDFs Oficiais
+        with t2:
+            st.markdown("##### Baixar Relatórios Oficiais")
+            c_pdf1, c_pdf2 = st.columns(2)
+            
+            with c_pdf1:
+                st.info("📄 Relatório de Vendas")
+                if st.button("Baixar PDF Vendas"):
+                    pdf = requests.get(f"{API_URL}/relatorios/vendas_pdf?inicio={ini}&fim={fim}")
+                    if pdf.status_code == 200:
+                        st.download_button("⬇️ Salvar Arquivo", pdf.content, "vendas.pdf", "application/pdf")
+                    else:
+                        st.error("Erro ao gerar PDF")
+
+            with c_pdf2:
+                st.info("📦 Estoque Valorado")
+                if st.button("Baixar PDF Estoque"):
+                    pdf = requests.get(f"{API_URL}/relatorios/estoque_pdf")
+                    if pdf.status_code == 200:
+                        st.download_button("⬇️ Salvar Arquivo", pdf.content, "estoque_valorado.pdf", "application/pdf")
+                    else:
+                        st.error("Erro ao gerar PDF")
+
+        # 3. Estoque Simples (Antigo)
+        with t3: 
+             d = get_data("relatorios/estoque/")
+             if d: st.dataframe(pd.DataFrame(d['itens']), use_container_width=True)
+    # ----------------------------------------
+
     elif page_id == "mrp": header("Planejamento"); st.warning("Cadastre fórmulas na engenharia.")
     elif page_id == "eng": header("Engenharia"); st.info("Cadastro de fórmulas.")
     elif page_id == "comp": header("Compras"); st.dataframe(pd.DataFrame(get_data("compras")))
