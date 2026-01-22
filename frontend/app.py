@@ -18,11 +18,11 @@ if 'logado' not in st.session_state: st.session_state['logado'] = False
 if 'usuario' not in st.session_state: st.session_state['usuario'] = ""
 if 'cargo' not in st.session_state: st.session_state['cargo'] = ""
 
-# Logo Branca (para fundo roxo)
+# Logo Branca (para contrastar com a sidebar roxa)
 def render_logo_svg(width="50px", color="#FFFFFF"):
     return f'<svg width="{width}" height="{width}" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 20 V80 C30 90 40 95 50 85 L80 50 C90 40 80 20 60 20 Z" stroke="{color}" stroke-width="8" fill="none"/><path d="M30 50 L60 20" stroke="{color}" stroke-width="8" stroke-linecap="round"/><circle cx="35" cy="85" r="5" fill="{color}"/></svg>'
 
-# --- ESTILO CLEAN PURPLE ---
+# --- ESTILO SOFT UI (IGUAL A REFERÊNCIA) ---
 def apply_custom_style():
     st.markdown("""
     <style>
@@ -32,7 +32,7 @@ def apply_custom_style():
         /* 1. FUNDO GERAL (CLARO) */
         .stApp { background-color: #F5F7FA; }
         
-        /* 2. SIDEBAR (ROXO PROFUNDO - Igual referência) */
+        /* 2. SIDEBAR (ROXO PROFUNDO) */
         div[data-testid="stSidebar"] { 
             background-color: #4338CA;
             background-image: linear-gradient(180deg, #4338CA 0%, #312E81 100%);
@@ -51,13 +51,14 @@ def apply_custom_style():
         }
 
         /* 3. MENU LATERAL (Ajuste da Caixa Vermelha) */
-        /* Item Normal */
+        /* Força a cor dos itens não selecionados para branco translúcido */
         .nav-link {
             color: rgba(255,255,255,0.7) !important;
             font-size: 14px !important;
             margin: 5px !important;
         }
-        /* Item Selecionado (Branco com texto Roxo) */
+        
+        /* CORREÇÃO DO SELECIONADO: Fundo Branco, Texto Roxo (Inverso) */
         .nav-link-selected {
             background-color: #FFFFFF !important;
             color: #4338CA !important; /* Texto Roxo */
@@ -65,6 +66,7 @@ def apply_custom_style():
             border-radius: 12px !important;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
         }
+        
         /* Ícones do Menu */
         .icon { font-size: 16px !important; }
 
@@ -90,10 +92,12 @@ def apply_custom_style():
         
         .kpi-value { font-size: 28px; font-weight: 700; color: #111827; margin: 5px 0; }
         .kpi-title { font-size: 12px; font-weight: 600; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Ícone no canto direito superior */
         .kpi-icon-bg {
-            position: absolute; top: 15px; right: 15px; width: 40px; height: 40px;
+            position: absolute; top: 20px; right: 20px; width: 45px; height: 45px;
             border-radius: 12px; display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
+            font-size: 22px;
         }
         
         /* Cores de Fundo dos Ícones */
@@ -111,7 +115,7 @@ def apply_custom_style():
             min-height: 45px;
         }
 
-        /* BOTÕES (Gradientes Suaves) */
+        /* BOTÕES (Roxo/Azul Vibrante) */
         div[data-testid="stFormSubmitButton"] button, div[data-testid="stButton"] button[kind="primary"] { 
             background: linear-gradient(90deg, #4F46E5 0%, #6366F1 100%) !important; 
             color: white !important; 
@@ -202,7 +206,7 @@ def sistema_erp():
         
         menu = [{"l": "Dashboard", "i": "grid-fill", "id": "dash"}, {"l": "PDV (Caixa)", "i": "cart-fill", "id": "pdv"}, {"l": "Produtos", "i": "box-seam-fill", "id": "prod"}, {"l": "Clientes", "i": "people-fill", "id": "cli"}, {"l": "Financeiro", "i": "wallet-fill", "id": "fin"}, {"l": "Relatórios", "i": "bar-chart-fill", "id": "rel"}, {"l": "CRM", "i": "heart-fill", "id": "crm"}, {"l": "Produção", "i": "gear-wide-connected", "id": "fab"}, {"l": "Compras", "i": "bag-fill", "id": "comp"}, {"l": "Engenharia", "i": "tools", "id": "eng"}, {"l": "Planejamento", "i": "diagram-3", "id": "mrp"}, {"l": "Fornecedores", "i": "truck", "id": "forn"}, {"l": "Vendas Adm", "i": "graph-up", "id": "vend"}, {"l": "Config", "i": "sliders", "id": "cfg"}]
         
-        # O SEGREDO DO MENU ESTÁ NO CSS GLOBAL AGORA
+        # AQUI ESTÁ A MÁGICA PARA TIRAR O VERMELHO
         sel = option_menu(
             menu_title=None,
             options=[x["l"] for x in menu],
@@ -212,6 +216,8 @@ def sistema_erp():
                 "container": {"padding": "0!important", "background-color": "transparent"},
                 "icon": {"color": "rgba(255,255,255,0.7)", "font-size": "14px"}, 
                 "nav-link": {"font-family":"Poppins", "font-weight":"500", "font-size": "14px", "text-align": "left", "margin":"5px", "color": "white"},
+                # FORÇANDO A SELEÇÃO: Fundo Branco, Texto Roxo
+                "nav-link-selected": {"background-color": "#FFFFFF", "color": "#4338CA"}
             }
         )
         page_id = next(x["id"] for x in menu if x["l"] == sel)
